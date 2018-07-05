@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2035
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinuxDetours", "LinuxDetours\LinuxDetours.vcxproj", "{1F301A1B-7744-4378-833C-C4E27A096045}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM = Release|ARM
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Debug|ARM.ActiveCfg = Debug|ARM
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Debug|ARM.Build.0 = Debug|ARM
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Debug|x64.ActiveCfg = Debug|x64
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Debug|x64.Build.0 = Debug|x64
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Debug|x86.ActiveCfg = Debug|x86
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Debug|x86.Build.0 = Debug|x86
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Release|ARM.ActiveCfg = Release|ARM
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Release|ARM.Build.0 = Release|ARM
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Release|x64.ActiveCfg = Release|x64
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Release|x64.Build.0 = Release|x64
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Release|x86.ActiveCfg = Release|x86
+		{1F301A1B-7744-4378-833C-C4E27A096045}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CFDDA7EB-D2EF-4063-8F4F-2E7E2E886066}
+	EndGlobalSection
+EndGlobal
