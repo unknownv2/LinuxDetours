@@ -61,9 +61,9 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <RemoteCCompileToolExe>clang++-3.9</RemoteCCompileToolExe>
-    <RemoteCppCompileToolExe>clang++-3.9</RemoteCppCompileToolExe>
-    <RemoteLdToolExe>clang++-3.9</RemoteLdToolExe>
+    <RemoteCCompileToolExe>clang++</RemoteCCompileToolExe>
+    <RemoteCppCompileToolExe>clang++</RemoteCppCompileToolExe>
+    <RemoteLdToolExe>clang++</RemoteLdToolExe>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="barrier.cpp" />
@@ -78,7 +78,7 @@
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_AMD64_</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_AMD64_;DETOURS_64BIT;_WIN64</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalOptions>-lpthread -ldl %(AdditionalOptions)</AdditionalOptions>

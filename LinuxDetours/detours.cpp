@@ -81,7 +81,7 @@ static bool detour_is_imported(PBYTE pbCode, PBYTE pbAddress)
 	return false;
 	}
 	*/
-	return false;
+	return true;
 }
 
 inline ULONG_PTR detour_2gb_below(ULONG_PTR address)
@@ -963,6 +963,17 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 	PBYTE pbTry = detour_alloc_round_up_to_region(pbLo);
 
 	DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
+	for (; pbTry < pbHi;) {
+		PVOID pv = mmap(pbTry, DETOUR_REGION_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, NULL);
+		if (pv != NULL) {
+			return pv;
+		}
+		pbTry += DETOUR_REGION_SIZE;
+
+		//else {
+		//pbTry = detour_alloc_round_up_to_region((PBYTE)mbi.BaseAddress + mbi.RegionSize);
+		//}
+	}
 	/*
 	for (; pbTry < pbHi;) {
 	MEMORY_BASIC_INFORMATION mbi;
@@ -1010,6 +1021,18 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 {
 
 	PBYTE pbTry = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
+	DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
+	for (; pbTry < pbHi;) {
+		PVOID pv = mmap(pbTry, DETOUR_REGION_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, NULL);
+		if (pv != NULL) {
+			return pv;
+		}
+		pbTry += DETOUR_REGION_SIZE;
+
+		//else {
+		//pbTry = detour_alloc_round_up_to_region((PBYTE)mbi.BaseAddress + mbi.RegionSize);
+		//}
+	}
 	/*
 	DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
 
@@ -1025,31 +1048,31 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 
 	ZeroMemory(&mbi, sizeof(mbi));
 	if (!VirtualQuery(pbTry, &mbi, sizeof(mbi))) {
-	break;
-	}
+		break;
+		}
 
-	DETOUR_TRACE(("  Try %p => %p..%p %6x\n",
-	pbTry,
-	mbi.BaseAddress,
-	(PBYTE)mbi.BaseAddress + mbi.RegionSize - 1,
-	mbi.State));
+		DETOUR_TRACE(("  Try %p => %p..%p %6x\n",
+		pbTry,
+		mbi.BaseAddress,
+		(PBYTE)mbi.BaseAddress + mbi.RegionSize - 1,
+		mbi.State));
 
-	if (mbi.State == MEM_FREE && mbi.RegionSize >= DETOUR_REGION_SIZE) {
+		if (mbi.State == MEM_FREE && mbi.RegionSize >= DETOUR_REGION_SIZE) {
 
-	PVOID pv = VirtualAlloc(pbTry,
-	DETOUR_REGION_SIZE,
-	MEM_COMMIT|MEM_RESERVE,
-	PAGE_EXECUTE_READWRITE);
-	if (pv != NULL) {
-	return pv;
-	}
-	pbTry -= DETOUR_REGION_SIZE;
-	}
-	else {
-	pbTry = detour_alloc_round_down_to_region((PBYTE)mbi.AllocationBase
-	- DETOUR_REGION_SIZE);
-	}
-	}
+				PVOID pv = VirtualAlloc(pbTry,
+				DETOUR_REGION_SIZE,
+				MEM_COMMIT|MEM_RESERVE,
+				PAGE_EXECUTE_READWRITE);
+				if (pv != NULL) {
+				return pv;
+			}
+			pbTry -= DETOUR_REGION_SIZE;
+		}
+		else {
+			pbTry = detour_alloc_round_down_to_region((PBYTE)mbi.AllocationBase
+			- DETOUR_REGION_SIZE);
+		}
+		}
 	*/
 	return NULL;
 }
@@ -1419,7 +1442,7 @@ UCHAR* DetourGetTrampolinePtr()
 		Ptr += *((int*)(Ptr + 1)) + 5;
 
 #ifdef DETOURS_X64
-	return Ptr + 5 * 8;
+	return Ptr;// +5 * 8;
 #else
 	return Ptr;
 #endif    
@@ -2595,14 +2618,17 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 
 	(void)pbTrampoline;
 
-	DWORD dwOld = 0;
-	/*
-	if (!VirtualProtect(pbTarget, cbTarget, PAGE_EXECUTE_READWRITE, &dwOld)) {
-	error = GetLastError();
-	DETOUR_BREAK();
-	goto fail;
+	DWORD dwOld = PAGE_EXECUTE_READ;
+	
+	ULONGLONG PageSize = 4096;
+	ULONGLONG mod = (ULONGLONG)pbTarget % PageSize;
+
+	if (mprotect((PBYTE)pbTarget - mod, PageSize, PAGE_EXECUTE_READWRITE)) {
+		error = -1;// GetLastError();
+		DETOUR_BREAK();
+		goto fail;
 	}
-	*/
+	
 
 	DETOUR_TRACE(("detours: pbTarget=%p: "
 		"%02x %02x %02x %02x "

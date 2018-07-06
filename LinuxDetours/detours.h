@@ -327,7 +327,6 @@ extern "C" {
 	//
 
 
-#pragma pack(pop)
 
 #define DETOUR_SECTION_HEADER_DECLARE(cbSectionSize) \
 { \
@@ -622,7 +621,7 @@ extern "C" {
 static inline
 LONG InterlockedCompareExchange(_Inout_ LONG *ptr, _In_ LONG nval, _In_ LONG oval)
 {
-	return (LONG)__sync_val_compare_and_swap((PVOID*)ptr, (PVOID)nval, (PVOID)oval);
+	return (LONG)__sync_val_compare_and_swap(ptr, oval, nval);
 }
 #else
 #pragma warning(push)

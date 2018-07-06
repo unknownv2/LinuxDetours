@@ -107,7 +107,6 @@ void* RtlAllocateMemory(BOOL InZeroMemory, ULONG InSize)
 
 LONG RtlProtectMemory(void* InPointer, ULONG InSize, ULONG InNewProtection)
 {
-	DWORD       OldProtect;
 	NTSTATUS            NtStatus;
 
 	if (mprotect(InPointer, (size_t)InSize, (int)InNewProtection))
@@ -133,7 +132,7 @@ void RtlFreeMemory(void* InPointer)
 
 LONG RtlInterlockedIncrement(LONG* RefValue)
 {
-	return 1;
+	return __sync_fetch_and_add(RefValue, 1);
 }
 
 BOOL RtlIsValidPointer(PVOID InPtr, ULONG InSize)
