@@ -280,11 +280,16 @@ LONG LhSetACL(
 	}
 
 	// set ACL...
-	InAcl->IsExclusive = InIsExclusive;
-	InAcl->Count = InThreadCount;
+	if (!mprotect(detour_get_page(InAcl), detour_get_page_size(), PAGE_READWRITE)) {
+		InAcl->IsExclusive = InIsExclusive;
+		InAcl->Count = InThreadCount;
 
-	RtlCopyMemory(InAcl->Entries, InThreadIdList, InThreadCount * sizeof(ULONG));
+		RtlCopyMemory(InAcl->Entries, InThreadIdList, InThreadCount * sizeof(ULONG));
+		if (mprotect(detour_get_page(InAcl), detour_get_page_size(), PAGE_EXECUTE_READ)) {
 
+			return -3;
+		}
+	}
 	return 0;
 }
 
