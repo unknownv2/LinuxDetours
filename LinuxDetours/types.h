@@ -9,6 +9,7 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+
 #define MIN(a,b) ((a < b) ? a : b)
 #define MAX(a,b) ((a > b) ? a : b)
 #define CLAMP(val,lower,upper) MAX(MIN(val,upper),lower)
@@ -201,6 +202,23 @@ typedef DWORD *PDWORD;
 
 typedef size_t SIZE_T;
 
+//typedef unsigned long ULONG;
+typedef ULONG *PULONG;
+//typedef unsigned short USHORT;
+typedef USHORT *PUSHORT;
+//typedef unsigned char UCHAR;
+typedef UCHAR *PUCHAR;
+//typedef _Null_terminated_ char *PSZ;
+
+typedef signed char         INT8, *PINT8;
+typedef signed short        INT16, *PINT16;
+typedef signed int          INT32, *PINT32;
+typedef unsigned char       UINT8, *PUINT8;
+typedef unsigned short      UINT16, *PUINT16;
+typedef unsigned int        UINT32, *PUINT32;
+
+#define RtlZeroMemory(Destination,Length) memset((Destination),0,(Length))
+#define ZeroMemory RtlZeroMemory
 #define NO_ERROR 0
 #define ERROR_INVALID_DATA               13L
 #if !defined(UNALIGNED)

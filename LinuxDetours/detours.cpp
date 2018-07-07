@@ -591,7 +591,7 @@ struct _DETOUR_TRAMPOLINE
 	BYTE            rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
 };
 
-C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 900);
+//C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 900);
 
 enum {
 	SIZE_OF_JMP = 8
@@ -635,6 +635,9 @@ PBYTE detour_gen_jmp_immediate(PBYTE pbCode, PBYTE *ppPool, PBYTE pbJmpVal)
 
 	// stored as: DF F8 00 F0 
 	write_thumb_opcode(pbCode, 0xf8dff000 | delta);     // LDR PC,[PC+n]
+	//write_thumb_opcode(pbCode, 0x9FE504f0 | delta);  
+	//write_thumb_opcode(pbCode, 0xF004E51F | delta);
+	//write_thumb_opcode(pbCode, 0xF000DFF8 | delta);
 
 	if (ppPool == NULL) {
 		if (((ULONG)pbCode & 2) != 0) {
@@ -952,7 +955,7 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 
 	DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
 	for (; pbTry < pbHi;) {
-		PVOID pv = mmap(pbTry, DETOUR_REGION_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, NULL);
+		PVOID pv = mmap(pbTry, DETOUR_REGION_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		if (pv != NULL) {
 			return pv;
 		}
@@ -986,7 +989,7 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 	if (mbi.State == MEM_FREE && mbi.RegionSize >= DETOUR_REGION_SIZE) {
 
 	PVOID pv = malloc(DETOUR_REGION_SIZE);
-	/*VirtualAlloc(pbTry,
+	VirtualAlloc(pbTry,
 	DETOUR_REGION_SIZE,
 	MEM_COMMIT|MEM_RESERVE,
 	PAGE_EXECUTE_READWRITE);
@@ -1007,11 +1010,10 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 
 static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 {
-
 	PBYTE pbTry = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
 	DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
 	for (; pbTry < pbHi;) {
-		PVOID pv = mmap(pbTry, DETOUR_REGION_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, NULL);
+		PVOID pv = mmap(pbTry, DETOUR_REGION_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		if (pv != NULL) {
 			return pv;
 		}
@@ -1036,31 +1038,31 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 
 	ZeroMemory(&mbi, sizeof(mbi));
 	if (!VirtualQuery(pbTry, &mbi, sizeof(mbi))) {
-		break;
-		}
+	break;
+	}
 
-		DETOUR_TRACE(("  Try %p => %p..%p %6x\n",
-		pbTry,
-		mbi.BaseAddress,
-		(PBYTE)mbi.BaseAddress + mbi.RegionSize - 1,
-		mbi.State));
+	DETOUR_TRACE(("  Try %p => %p..%p %6x\n",
+	pbTry,
+	mbi.BaseAddress,
+	(PBYTE)mbi.BaseAddress + mbi.RegionSize - 1,
+	mbi.State));
 
-		if (mbi.State == MEM_FREE && mbi.RegionSize >= DETOUR_REGION_SIZE) {
+	if (mbi.State == MEM_FREE && mbi.RegionSize >= DETOUR_REGION_SIZE) {
 
-				PVOID pv = VirtualAlloc(pbTry,
-				DETOUR_REGION_SIZE,
-				MEM_COMMIT|MEM_RESERVE,
-				PAGE_EXECUTE_READWRITE);
-				if (pv != NULL) {
-				return pv;
-			}
-			pbTry -= DETOUR_REGION_SIZE;
-		}
-		else {
-			pbTry = detour_alloc_round_down_to_region((PBYTE)mbi.AllocationBase
-			- DETOUR_REGION_SIZE);
-		}
-		}
+	PVOID pv = VirtualAlloc(pbTry,
+	DETOUR_REGION_SIZE,
+	MEM_COMMIT|MEM_RESERVE,
+	PAGE_EXECUTE_READWRITE);
+	if (pv != NULL) {
+	return pv;
+	}
+	pbTry -= DETOUR_REGION_SIZE;
+	}
+	else {
+	pbTry = detour_alloc_round_down_to_region((PBYTE)mbi.AllocationBase
+	- DETOUR_REGION_SIZE);
+	}
+	}
 	*/
 	return NULL;
 }
@@ -1556,15 +1558,15 @@ TRAMPOLINE_EXIT:
 #endif
 
 #ifdef DETOURS_X86
-extern "C" void __stdcall Trampoline_ASM_x86();
+extern "C" void Trampoline_ASM_x86();
 #endif
 
 #ifdef DETOURS_ARM
-extern "C" void __stdcall Trampoline_ASM_ARM();
+extern "C" void Trampoline_ASM_ARM();
 #endif
 
 #ifdef DETOURS_ARM64
-extern "C" void __stdcall Trampoline_ASM_ARM64();
+extern "C" void Trampoline_ASM_ARM64();
 #endif
 
 #if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM) || defined(DETOURS_ARM64)
@@ -1581,7 +1583,7 @@ UCHAR* DetourGetTrampolinePtr()
 
 #ifdef DETOURS_ARM
 	UCHAR* Ptr = (UCHAR*)Trampoline_ASM_ARM;
-	Ptr += 6 * 4;
+	Ptr += 5 * 4;
 #endif
 
 #ifdef DETOURS_ARM64
@@ -1617,7 +1619,7 @@ ULONG GetTrampolineSize()
 		{
 #ifdef DETOURS_ARM            
 			___TrampolineSize = (ULONG)(align4(Ptr + 7) - BasePtr);
-			return ___TrampolineSize + 1;
+			return ___TrampolineSize ;
 #endif
 #if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM64)
 			___TrampolineSize = (ULONG)(Ptr - BasePtr);
@@ -2005,7 +2007,7 @@ VOID InsertTraceHandle(PDETOUR_TRAMPOLINE pTrampoline)
 	memset(&pTrampoline->LocalACL, 0, sizeof(HOOK_ACL));
 
 	TRACED_HOOK_HANDLE OutHandle = new HOOK_TRACE_INFO();
-		//= (TRACED_HOOK_HANDLE) new unsigned char[sizeof(HOOK_TRACE_INFO)];
+	//= (TRACED_HOOK_HANDLE) new unsigned char[sizeof(HOOK_TRACE_INFO)];
 
 	LastOutHandle = pTrampoline->OutHandle = OutHandle;
 
@@ -2213,15 +2215,16 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			UCHAR * trampoline = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
 
+			//*(PBYTE)&o->pTrampoline->rbTrampolineCode = 0;
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			const ULONG trampolinePtrCount = 6;
 			PBYTE trampolineStart = align4(trampoline);
 			memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));
-			o->pTrampoline->HookIntro = BarrierIntro;
-			o->pTrampoline->HookOutro = BarrierOutro;
+			o->pTrampoline->HookIntro = (PVOID)BarrierIntro;
+			o->pTrampoline->HookOutro = (PVOID)BarrierOutro;
 			o->pTrampoline->Trampoline = endOfTramp;
-			o->pTrampoline->OldProc = o->pTrampoline->rbCode;
-			o->pTrampoline->HookProc = o->pTrampoline->pbDetour;
+			o->pTrampoline->OldProc = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->rbCode);
+			o->pTrampoline->HookProc = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->pbDetour);
 			o->pTrampoline->IsExecutedPtr = new int();
 			// relocate relative addresses the trampoline uses the above function pointers   
 			for (int x = 0; x < trampolinePtrCount; x++) {
@@ -2792,7 +2795,7 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 		DETOUR_BREAK();
 		goto fail;
 	}
-	
+
 
 	DETOUR_TRACE(("detours: pbTarget=%p: "
 		"%02x %02x %02x %02x "
