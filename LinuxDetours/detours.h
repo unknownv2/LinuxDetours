@@ -494,7 +494,7 @@ extern "C" {
 
 	LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer);
 
-	LONG WINAPI DetourUpdateThread(_In_ HANDLE hThread);
+	LONG WINAPI DetourUpdateThread(_In_ pthread_t hThread);
 
 	LONG WINAPI DetourAttach(_Inout_ PVOID *ppPointer,
 		_In_ PVOID pDetour);
@@ -742,8 +742,8 @@ void RtlDeleteLock(RTL_SPIN_LOCK* InLock);
 void RtlSleep(ULONG InTimeout);
 
 
-
-
+PVOID detour_get_page(PVOID addr);
+int detour_get_page_size();
 
 typedef struct _RUNTIME_INFO_
 {
