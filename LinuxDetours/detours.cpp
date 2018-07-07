@@ -47,6 +47,15 @@ static LONG                 UniqueIDCounter = 0x10000000;
 
 //////////////////////////////////////////////////////////////////////////////
 //
+int detour_get_page_size()
+{
+	return getpagesize();
+}
+PVOID detour_get_page(PVOID addr)
+{
+	ULONG_PTR ptr = (ULONG_PTR)addr;
+	return (PVOID)(ptr - (ptr % getpagesize()));
+}
 static bool detour_is_imported(PBYTE pbCode, PBYTE pbAddress)
 {
 	/*
@@ -914,8 +923,12 @@ static DWORD detour_writable_trampoline_regions()
 {
 	// Mark all of the regions as writable.
 	for (PDETOUR_REGION pRegion = s_pRegions; pRegion != NULL; pRegion = pRegion->pNext) {
-		DWORD dwOld;
-		/*
+		if (mprotect(detour_get_page((PBYTE)pRegion), DETOUR_REGION_SIZE, PAGE_EXECUTE_READWRITE)) {
+			// Failed
+		}
+
+		/*DWORD dwOld;
+		
 		if (!VirtualProtect(pRegion, DETOUR_REGION_SIZE, PAGE_EXECUTE_READWRITE, &dwOld)) {
 		return GetLastError();
 		}*/
@@ -929,9 +942,12 @@ static void detour_runnable_trampoline_regions()
 
 	// Mark all of the regions as executable.
 	for (PDETOUR_REGION pRegion = s_pRegions; pRegion != NULL; pRegion = pRegion->pNext) {
-		DWORD dwOld;
-		/*VirtualProtect(pRegion, DETOUR_REGION_SIZE, PAGE_EXECUTE_READWRITE, &dwOld);*/
-		//FlushInstructionCache(hProcess, pRegion, DETOUR_REGION_SIZE);
+		if (mprotect(detour_get_page((PBYTE)pRegion), DETOUR_REGION_SIZE, PAGE_EXECUTE_READ)) {
+			// Failed
+		}
+		/*DWORD dwOld;
+		VirtualProtect(pRegion, DETOUR_REGION_SIZE, PAGE_EXECUTE_READWRITE, &dwOld);
+		//FlushInstructionCache(hProcess, pRegion, DETOUR_REGION_SIZE);*/
 	}
 }
 
@@ -1182,9 +1198,13 @@ static void detour_free_trampoline(PDETOUR_TRAMPOLINE pTrampoline)
 {
 	PDETOUR_REGION pRegion = (PDETOUR_REGION)
 		((ULONG_PTR)pTrampoline & ~(ULONG_PTR)0xffff);
-#ifdef DETOURS_ARM
-	delete[] pTrampoline->IsExecutedPtr;
-	delete[] pTrampoline->OutHandle;
+#if defined(DETOURS_X86) || defined(DETOURS_X64) || defined(DETOURS_ARM) || defined(DETOURS_ARM64)
+	if (pTrampoline->IsExecutedPtr != NULL) {
+		delete[] pTrampoline->IsExecutedPtr;
+	}
+	if (pTrampoline->OutHandle != NULL) {
+		delete pTrampoline->OutHandle;
+	}
 	if (GlobalSlotList[pTrampoline->HLSIndex] == pTrampoline->HLSIdent)
 	{
 		GlobalSlotList[pTrampoline->HLSIndex] = 0;
@@ -1875,7 +1895,13 @@ LONG WINAPI LhUninstallHook(TRACED_HOOK_HANDLE InHandle)
 
 			if (Hook->HookProc != NULL)
 			{
-				Hook->HookProc = NULL;
+				if (!mprotect(detour_get_page(Hook), detour_get_page_size(), PAGE_READWRITE)) {
+					Hook->HookProc = NULL;
+					if (mprotect(detour_get_page(Hook), detour_get_page_size(), PAGE_EXECUTE_READ)) {
+
+						return -3;
+					}
+				}
 
 				IsAllocated = TRUE;
 			}
@@ -1985,7 +2011,17 @@ LONG WINAPI DetourSetCallbackForLocalHook(PVOID* ppPointer, PVOID pCallback)
 	PDETOUR_TRAMPOLINE pTrampoline =
 		(PDETOUR_TRAMPOLINE)DetourCodeFromPointer(*ppPointer, NULL);
 	if (pTrampoline != NULL) {
+		DWORD dwOld = 0;
+		DWORD error = 0;
+		if (mprotect(detour_get_page(pTrampoline), sizeof(DETOUR_TRAMPOLINE), PAGE_READWRITE)) {
+			error = -3;
+			DETOUR_BREAK();
+		}
 		pTrampoline->Callback = pCallback;
+		if (!mprotect(pTrampoline, sizeof(DETOUR_TRAMPOLINE), PAGE_READONLY)) {
+			error = -2;
+			DETOUR_BREAK();
+		}
 		return 0;
 	}
 
@@ -1995,8 +2031,8 @@ VOID InsertTraceHandle(PDETOUR_TRAMPOLINE pTrampoline)
 {
 	memset(&pTrampoline->LocalACL, 0, sizeof(HOOK_ACL));
 
-	TRACED_HOOK_HANDLE OutHandle
-		= (TRACED_HOOK_HANDLE) new unsigned char[sizeof(HOOK_TRACE_INFO)];
+	TRACED_HOOK_HANDLE OutHandle = new HOOK_TRACE_INFO();
+		//= (TRACED_HOOK_HANDLE) new unsigned char[sizeof(HOOK_TRACE_INFO)];
 
 	LastOutHandle = pTrampoline->OutHandle = OutHandle;
 
@@ -2143,7 +2179,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			o->pTrampoline->Trampoline = endOfTramp;
 			o->pTrampoline->OldProc = o->pTrampoline->rbCode;
 			o->pTrampoline->HookProc = o->pTrampoline->pbDetour;
-			o->pTrampoline->IsExecutedPtr = new int[1];// {0};
+			o->pTrampoline->IsExecutedPtr = new int();
 
 			InsertTraceHandle(o->pTrampoline);
 
@@ -2168,7 +2204,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			o->pTrampoline->Trampoline = endOfTramp;
 			o->pTrampoline->OldProc = o->pTrampoline->rbCode;
 			o->pTrampoline->HookProc = o->pTrampoline->pbDetour;
-			o->pTrampoline->IsExecutedPtr = new int[1]{ 0 };
+			o->pTrampoline->IsExecutedPtr = new int();
 			PBYTE Ptr = (PBYTE)o->pTrampoline->Trampoline;
 			for (ULONG Index = 0; Index < TrampolineSize; Index++)
 			{
@@ -2213,7 +2249,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			o->pTrampoline->Trampoline = endOfTramp;
 			o->pTrampoline->OldProc = o->pTrampoline->rbCode;
 			o->pTrampoline->HookProc = o->pTrampoline->pbDetour;
-			o->pTrampoline->IsExecutedPtr = new int[1]{ 0 };
+			o->pTrampoline->IsExecutedPtr = new int();
 			// relocate relative addresses the trampoline uses the above function pointers   
 			for (int x = 0; x < trampolinePtrCount; x++) {
 				*(INT*)((endOfTramp + TrampolineSize) + (x * sizeof(PVOID))) -= (INT)trampolineStart;
@@ -2366,7 +2402,8 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 	//HANDLE hProcess = GetCurrentProcess();
 	for (o = s_pPendingOperations; o != NULL;) {
 		// We don't care if this fails, because the code is still accessible.
-		DWORD dwOld;
+
+		mprotect(detour_get_page(o->pbTarget), detour_get_page_size(), PAGE_EXECUTE_READ);
 		//VirtualProtect(o->pbTarget, o->pTrampoline->cbRestore, o->dwPerm, &dwOld);
 		//FlushInstructionCache(hProcess, o->pbTarget, o->pTrampoline->cbRestore);
 
@@ -2409,7 +2446,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 	return s_nPendingError;
 }
 
-LONG WINAPI DetourUpdateThread(_In_ HANDLE hThread)
+LONG WINAPI DetourUpdateThread(_In_ pthread_t hThread)
 {
 	/*
 	LONG error;
@@ -2776,11 +2813,8 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	(void)pbTrampoline;
 
 	DWORD dwOld = PAGE_EXECUTE_READ;
-	
-	ULONGLONG PageSize = 4096;
-	ULONGLONG mod = (ULONGLONG)pbTarget % PageSize;
 
-	if (mprotect((PBYTE)pbTarget - mod, PageSize, PAGE_EXECUTE_READWRITE)) {
+	if (mprotect(detour_get_page(pbTarget), detour_get_page_size(), PAGE_EXECUTE_READWRITE)) {
 		error = -1;// GetLastError();
 		DETOUR_BREAK();
 		goto fail;
@@ -2937,7 +2971,11 @@ LONG WINAPI DetourDetach(_Inout_ PVOID *ppPointer,
 			goto fail;
 		}
 	}
-
+	if (mprotect(detour_get_page(pbTarget), detour_get_page_size(), PAGE_EXECUTE_READWRITE)) {
+		error = -1;// GetLastError();
+		DETOUR_BREAK();
+		goto fail;
+	}
 	DWORD dwOld = 0;
 	/*if (!VirtualProtect(pbTarget, cbTarget,
 	PAGE_EXECUTE_READWRITE, &dwOld)) {
