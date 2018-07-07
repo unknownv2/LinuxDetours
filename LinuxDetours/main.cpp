@@ -17,15 +17,10 @@ VOID* WINAPI TestSleep(void*)
 	fflush(stdout);
 
 
-	printf("detours: Calling Sleep for 1 second.\n");
-	sleep(1000);
-	printf("detours: Calling SleepEx for 1 second.\n");
-
-	printf("detours: Calling Sleep again for 1 second.\n");
-	sleep(1000);
-	printf("detours: Calling TimedSleep for 1 second.\n");
-
-	printf("detours: Calling UntimedSleep for 1 second.\n");
+	printf("detours: Calling sleep for 1 second.\n");
+	sleep(1);
+	printf("detours: Calling sleep again for 1 second.\n");
+	sleep(1);
 
 	printf("detours: Done sleeping.\n\n");
 
@@ -42,6 +37,7 @@ int main()
 	LONG selfHandle2 = NULL;
 	TRACED_HOOK_HANDLE outHandle = (TRACED_HOOK_HANDLE)new BYTE[sizeof(TRACED_HOOK_HANDLE)];
 
+	sleep(1);
 	LhInstallHook((void*)TrueSleepEx, (void*)TimedSleepEx, &selfHandle, outHandle);
 	ULONG ret = LhSetExclusiveACL(new ULONG[1]{ 0 }, 1, (TRACED_HOOK_HANDLE)outHandle);
 	pthread_t t;

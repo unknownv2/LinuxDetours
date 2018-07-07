@@ -1403,9 +1403,9 @@ extern "C" void Trampoline_ASM_x64();
 
 __asm__ __volatile__
 (R"(.intel_syntax
-.globl Trampoline_ASM_x64
+.globl Trampoline_ASM_x64_
 
-Trampoline_ASM_x64:
+Trampoline_ASM_x64_:
 
 
 NETIntro:

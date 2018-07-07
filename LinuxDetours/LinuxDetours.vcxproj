@@ -76,12 +76,15 @@
     <ClInclude Include="limits.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Object Include="trampolinex64.o" />
+  </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_AMD64_;DETOURS_64BIT;_WIN64</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalOptions>-lpthread -ldl%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-lpthread -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
