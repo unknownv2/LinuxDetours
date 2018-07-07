@@ -679,6 +679,7 @@ FINALLY_OUTRO:
 	return NtStatus;
 }
 
+
 LONG LhInstallHook(
 	void* InEntryPoint,
 	void* InHookProc,
