@@ -70,10 +70,12 @@
     <ClCompile Include="detours.cpp" />
     <ClCompile Include="disasm.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="plthook_elf.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="detours.h" />
     <ClInclude Include="limits.h" />
+    <ClInclude Include="plthook.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>

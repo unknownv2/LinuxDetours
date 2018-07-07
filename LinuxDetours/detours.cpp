@@ -11,7 +11,7 @@
 #define _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE 1
 #include "types.h"
 #include "limits.h"
-
+#include "plthook.h"
 
 //#define DETOUR_DEBUG 1
 #define DETOURS_INTERNAL
@@ -56,41 +56,23 @@ PVOID detour_get_page(PVOID addr)
 	ULONG_PTR ptr = (ULONG_PTR)addr;
 	return (PVOID)(ptr - (ptr % getpagesize()));
 }
+
 static bool detour_is_imported(PBYTE pbCode, PBYTE pbAddress)
 {
-	/*
-	MEMORY_BASIC_INFORMATION mbi;
-	VirtualQuery((PVOID)pbCode, &mbi, sizeof(mbi));
-	__try {
-	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)mbi.AllocationBase;
-	if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
-	return false;
-	}
+	plthook_t *plthook;
+	plthook_open(&plthook, NULL);
+	unsigned int pos = 0; /* This must be initialized with zero. */
+	const char *name;
+	void **addr;
 
-	PIMAGE_NT_HEADERS pNtHeader = (PIMAGE_NT_HEADERS)((PBYTE)pDosHeader +
-	pDosHeader->e_lfanew);
-	if (pNtHeader->Signature != IMAGE_NT_SIGNATURE) {
+	while (plthook_enum(plthook, &pos, &name, &addr) == 0) {
+		if (addr != NULL && (PBYTE)addr == pbAddress) {
+			plthook_close(plthook);
+			return true;
+		}
+	}
+	plthook_close(plthook);
 	return false;
-	}
-
-	if (pbAddress >= ((PBYTE)pDosHeader +
-	pNtHeader->OptionalHeader
-	.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress) &&
-	pbAddress < ((PBYTE)pDosHeader +
-	pNtHeader->OptionalHeader
-	.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress +
-	pNtHeader->OptionalHeader
-	.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size)) {
-	return true;
-	}
-	}
-	#pragma prefast(suppress:28940, "A bad pointer means this probably isn't a PE header.")
-	__except(GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
-	EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
-	return false;
-	}
-	*/
-	return true;
 }
 
 inline ULONG_PTR detour_2gb_below(ULONG_PTR address)
@@ -925,29 +907,19 @@ static DWORD detour_writable_trampoline_regions()
 	for (PDETOUR_REGION pRegion = s_pRegions; pRegion != NULL; pRegion = pRegion->pNext) {
 		if (mprotect(detour_get_page((PBYTE)pRegion), DETOUR_REGION_SIZE, PAGE_EXECUTE_READWRITE)) {
 			// Failed
+			return -1;
 		}
-
-		/*DWORD dwOld;
-		
-		if (!VirtualProtect(pRegion, DETOUR_REGION_SIZE, PAGE_EXECUTE_READWRITE, &dwOld)) {
-		return GetLastError();
-		}*/
 	}
 	return NO_ERROR;
 }
 
 static void detour_runnable_trampoline_regions()
 {
-	//HANDLE hProcess = GetCurrentProcess();
-
 	// Mark all of the regions as executable.
 	for (PDETOUR_REGION pRegion = s_pRegions; pRegion != NULL; pRegion = pRegion->pNext) {
 		if (mprotect(detour_get_page((PBYTE)pRegion), DETOUR_REGION_SIZE, PAGE_EXECUTE_READ)) {
 			// Failed
 		}
-		/*DWORD dwOld;
-		VirtualProtect(pRegion, DETOUR_REGION_SIZE, PAGE_EXECUTE_READWRITE, &dwOld);
-		//FlushInstructionCache(hProcess, pRegion, DETOUR_REGION_SIZE);*/
 	}
 }
 
@@ -1200,7 +1172,7 @@ static void detour_free_trampoline(PDETOUR_TRAMPOLINE pTrampoline)
 		((ULONG_PTR)pTrampoline & ~(ULONG_PTR)0xffff);
 #if defined(DETOURS_X86) || defined(DETOURS_X64) || defined(DETOURS_ARM) || defined(DETOURS_ARM64)
 	if (pTrampoline->IsExecutedPtr != NULL) {
-		delete[] pTrampoline->IsExecutedPtr;
+		delete pTrampoline->IsExecutedPtr;
 	}
 	if (pTrampoline->OutHandle != NULL) {
 		delete pTrampoline->OutHandle;
@@ -1248,6 +1220,7 @@ static void detour_free_unused_trampoline_regions()
 		if (detour_is_region_empty(pRegion)) {
 			*ppRegionBase = pRegion->pNext;
 
+			munmap(pRegion, DETOUR_REGION_SIZE);
 			//VirtualFree(pRegion, 0, MEM_RELEASE);
 			s_pRegion = NULL;
 		}
@@ -1356,10 +1329,10 @@ LONG WINAPI DetourTransactionAbort()
 	// Restore all of the page permissions.
 	for (DetourOperation *o = s_pPendingOperations; o != NULL;) {
 		// We don't care if this fails, because the code is still accessible.
-		DWORD dwOld;
+		//DWORD dwOld;
 		//VirtualProtect(o->pbTarget, o->pTrampoline->cbRestore,
 		//  o->dwPerm, &dwOld);
-
+		mprotect(detour_get_page(o->pbTarget), detour_get_page_size(), PAGE_EXECUTE_READ);
 		if (!o->fIsRemove) {
 			if (o->pTrampoline) {
 				detour_free_trampoline(o->pTrampoline);
@@ -2011,14 +1984,14 @@ LONG WINAPI DetourSetCallbackForLocalHook(PVOID* ppPointer, PVOID pCallback)
 	PDETOUR_TRAMPOLINE pTrampoline =
 		(PDETOUR_TRAMPOLINE)DetourCodeFromPointer(*ppPointer, NULL);
 	if (pTrampoline != NULL) {
-		DWORD dwOld = 0;
+
 		DWORD error = 0;
-		if (mprotect(detour_get_page(pTrampoline), sizeof(DETOUR_TRAMPOLINE), PAGE_READWRITE)) {
+		if (mprotect(detour_get_page(pTrampoline), getpagesize(), PAGE_READWRITE)) {
 			error = -3;
 			DETOUR_BREAK();
 		}
 		pTrampoline->Callback = pCallback;
-		if (!mprotect(pTrampoline, sizeof(DETOUR_TRAMPOLINE), PAGE_READONLY)) {
+		if (!mprotect(pTrampoline, getpagesize(), PAGE_READONLY)) {
 			error = -2;
 			DETOUR_BREAK();
 		}
@@ -2815,7 +2788,7 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	DWORD dwOld = PAGE_EXECUTE_READ;
 
 	if (mprotect(detour_get_page(pbTarget), detour_get_page_size(), PAGE_EXECUTE_READWRITE)) {
-		error = -1;// GetLastError();
+		error = -1;
 		DETOUR_BREAK();
 		goto fail;
 	}
@@ -2972,23 +2945,16 @@ LONG WINAPI DetourDetach(_Inout_ PVOID *ppPointer,
 		}
 	}
 	if (mprotect(detour_get_page(pbTarget), detour_get_page_size(), PAGE_EXECUTE_READWRITE)) {
-		error = -1;// GetLastError();
+		error = -1;
 		DETOUR_BREAK();
 		goto fail;
 	}
-	DWORD dwOld = 0;
-	/*if (!VirtualProtect(pbTarget, cbTarget,
-	PAGE_EXECUTE_READWRITE, &dwOld)) {
-	error = GetLastError();
-	DETOUR_BREAK();
-	goto fail;
-	} */
 
 	o->fIsRemove = TRUE;
 	o->ppbPointer = (PBYTE*)ppPointer;
 	o->pTrampoline = pTrampoline;
 	o->pbTarget = pbTarget;
-	o->dwPerm = dwOld;
+	o->dwPerm = 0;
 	o->pNext = s_pPendingOperations;
 	s_pPendingOperations = o;
 
