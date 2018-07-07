@@ -237,6 +237,8 @@ typedef size_t SIZE_T;
 #define STATUS_INSUFFICIENT_RESOURCES 1
 #define STATUS_INVALID_PARAMETER         ((DWORD   )0xC000000DL)
 #define PAGE_EXECUTE_READWRITE  PROT_EXEC | PROT_READ  | PROT_WRITE
+#define PAGE_READONLY  PROT_READ
+#define PAGE_READWRITE  PROT_READ | PROT_WRITE
 #define PAGE_EXECUTE_READ  PROT_EXEC | PROT_READ
 /* These are defined so we can use TCHAR compatible string calls */
 #define _TINT int
