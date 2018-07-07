@@ -32,12 +32,10 @@ int main()
 
 	LhCriticalInitialize();
 
-
 	LONG selfHandle = NULL;
-	LONG selfHandle2 = NULL;
-	TRACED_HOOK_HANDLE outHandle = (TRACED_HOOK_HANDLE)new BYTE[sizeof(TRACED_HOOK_HANDLE)];
+	TRACED_HOOK_HANDLE outHandle = new HOOK_TRACE_INFO();
 
-	sleep(1);
+	//sleep(1);
 	LhInstallHook((void*)TrueSleepEx, (void*)TimedSleepEx, &selfHandle, outHandle);
 	ULONG ret = LhSetExclusiveACL(new ULONG[1]{ 0 }, 1, (TRACED_HOOK_HANDLE)outHandle);
 	pthread_t t;
@@ -45,6 +43,6 @@ int main()
 	pthread_join(t, NULL);
 	LhUninstallHook(outHandle);
 
-	delete[] outHandle;
+	delete outHandle;
     return 0;
 }
