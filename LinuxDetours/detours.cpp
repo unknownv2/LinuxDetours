@@ -740,7 +740,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 #ifdef DETOURS_ARM64
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 352 + 6 * 8;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 360 + 6 * 8;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -772,7 +772,7 @@ struct _DETOUR_TRAMPOLINE
 //C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 120);
 
 enum {
-	SIZE_OF_JMP = 8
+	SIZE_OF_JMP = 16
 };
 
 inline ULONG fetch_opcode(PBYTE pbCode)
@@ -1773,7 +1773,7 @@ ULONGLONG WINAPI BarrierIntro(DETOUR_TRAMPOLINE* InHandle, void* InRetAddr, void
 	Runtime->AddrOfRetAddr = InAddrOfRetAddr;
 
 	ReleaseSelfProtection();
-
+	
 	return TRUE;
 
 DONT_INTERCEPT:
@@ -1835,7 +1835,6 @@ void* WINAPI BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
 
 	return InHandle;
 }
-
 
 LONG WINAPI LhUninstallHook(TRACED_HOOK_HANDLE InHandle)
 {
@@ -2245,8 +2244,8 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 
 #ifdef DETOURS_ARM64
 			UCHAR * trampolineStart = DetourGetTrampolinePtr();
-			const ULONG TrampolineSize = GetTrampolineSize();
-
+			const ULONG TrampolineSize = GetTrampolineSize() ;
+			
 			const ULONG trampolinePtrCount = 6;
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));

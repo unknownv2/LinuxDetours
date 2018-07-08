@@ -20,7 +20,6 @@ unsigned int WINAPI TestDetourA(unsigned int seconds)
 	return TestDetourB(seconds + 2);
 }
 
-
 VOID* WINAPI TestSleep(void*)
 {
 	printf("\n");
@@ -55,6 +54,7 @@ double test1d(double a1, double a2, double a3)
 }
 int main()
 {
+
 	TestDetourA(2);
 	test1d(1.0, 2.0,3.0);
 
