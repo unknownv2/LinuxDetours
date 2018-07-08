@@ -740,7 +740,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 #ifdef DETOURS_ARM64
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 208 + 6 * 4;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 352 + 6 * 8;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -1566,11 +1566,7 @@ extern "C" void Trampoline_ASM_ARM();
 #endif
 
 #ifdef DETOURS_ARM64
-//extern "C" void Trampoline_ASM_ARM64();
-void Trampoline_ASM_ARM64()
-{
-
-}
+extern "C" void Trampoline_ASM_ARM64();
 #endif
 
 #if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM) || defined(DETOURS_ARM64)
@@ -1592,6 +1588,7 @@ UCHAR* DetourGetTrampolinePtr()
 
 #ifdef DETOURS_ARM64
 	UCHAR* Ptr = (UCHAR*)Trampoline_ASM_ARM64;
+	Ptr += 5 * 8;
 #endif
 
 	if (*Ptr == 0xE9)
@@ -1626,7 +1623,7 @@ ULONG GetTrampolineSize()
 			return ___TrampolineSize ;
 #endif
 #if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM64)
-			___TrampolineSize = (ULONG)(Ptr - BasePtr);
+			___TrampolineSize = (ULONG)(Ptr - BasePtr) + 4;
 			return ___TrampolineSize;
 #endif            
 		}
@@ -2247,7 +2244,30 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #endif // DETOURS_ARM
 
 #ifdef DETOURS_ARM64
-			PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, o->pTrampoline->pbDetour);
+			UCHAR * trampolineStart = DetourGetTrampolinePtr();
+			const ULONG TrampolineSize = GetTrampolineSize();
+
+			const ULONG trampolinePtrCount = 6;
+			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
+			memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));
+
+			o->pTrampoline->HookIntro = (PVOID)BarrierIntro;
+			o->pTrampoline->HookOutro = (PVOID)BarrierOutro;
+			o->pTrampoline->Trampoline = endOfTramp;
+			o->pTrampoline->OldProc = o->pTrampoline->rbCode;
+			o->pTrampoline->HookProc = o->pTrampoline->pbDetour;
+			o->pTrampoline->IsExecutedPtr = new int();
+			// relocate relative addresses the trampoline uses the above function pointers   
+			for (int x = 0; x < trampolinePtrCount; x++) {
+				*(ULONG_PTR*)((endOfTramp + TrampolineSize) + (x * sizeof(PVOID))) -= (ULONG_PTR)trampolineStart;
+				*(ULONG_PTR*)((endOfTramp + TrampolineSize) + (x * sizeof(PVOID))) += (ULONG_PTR)endOfTramp;
+			}
+			InsertTraceHandle(o->pTrampoline);
+
+			AddTrampolineToGlobalList(o->pTrampoline);
+			PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, (PBYTE)o->pTrampoline->Trampoline);
+
+			//PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, o->pTrampoline->pbDetour);
 			pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
 			*o->ppbPointer = o->pTrampoline->rbCode;
 			UNREFERENCED_PARAMETER(pbCode);
