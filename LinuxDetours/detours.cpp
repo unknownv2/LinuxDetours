@@ -1566,7 +1566,11 @@ extern "C" void Trampoline_ASM_ARM();
 #endif
 
 #ifdef DETOURS_ARM64
-extern "C" void Trampoline_ASM_ARM64();
+//extern "C" void Trampoline_ASM_ARM64();
+void Trampoline_ASM_ARM64()
+{
+
+}
 #endif
 
 #if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM) || defined(DETOURS_ARM64)
