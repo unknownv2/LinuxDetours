@@ -65,6 +65,11 @@
     <RemoteCppCompileToolExe>clang++</RemoteCppCompileToolExe>
     <RemoteLdToolExe>clang++</RemoteLdToolExe>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <RemoteLdToolExe>clang++</RemoteLdToolExe>
+    <RemoteCCompileToolExe>clang++</RemoteCCompileToolExe>
+    <RemoteCppCompileToolExe>clang++</RemoteCppCompileToolExe>
+  </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="barrier.cpp" />
     <ClCompile Include="detours.cpp" />
@@ -79,7 +84,7 @@
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
-    <Object Include="trampolinex64.o" />
+    <Object Include="trampolinearm64.o" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -88,6 +93,15 @@
     <Link>
       <AdditionalOptions>-lpthread -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Link>
+      <AdditionalOptions>-lpthread -ldl %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <ClCompile>
+      <PreprocessorDefinitions>_ARM64_</PreprocessorDefinitions>
+      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
