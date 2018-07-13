@@ -769,7 +769,7 @@ struct _DETOUR_TRAMPOLINE
 	BYTE            rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
 };
 
-//C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 120);
+//C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 1128);
 
 enum {
 	SIZE_OF_JMP = 16
@@ -1430,12 +1430,16 @@ IsExecutedPtr:
 	push rcx
 	push r8
 	push r9
-sub rsp, 4 * 16 ## space for SSE registers
+	sub rsp, 8 * 16 ## space for SSE registers
 
-	movups [rsp + 3 * 16], xmm0
-	movups [rsp + 2 * 16], xmm1
-	movups [rsp + 1 * 16], xmm2
-	movups [rsp + 0 * 16], xmm3
+	movups [rsp + 7 * 16], xmm0
+	movups [rsp + 6 * 16], xmm1
+	movups [rsp + 5 * 16], xmm2
+	movups [rsp + 4 * 16], xmm3
+	movups [rsp + 3 * 16], xmm4
+	movups [rsp + 2 * 16], xmm5
+	movups [rsp + 1 * 16], xmm6
+	movups [rsp + 0 * 16], xmm7
 
 	sub rsp, 32## shadow space for method calls
 
@@ -1466,7 +1470,7 @@ CALL_NET_ENTRY:
 ## call NET intro
 	lea rdi, [IsExecutedPtr + 8] ## Hook handle (only a position hint)
 	## Here we are under the alignment trick.
-	mov rdx, [rsp + 32 + 4 * 16 + 6 * 8 + 8] ## rdx = original rsp (address of return address)
+	mov rdx, [rsp + 32 + 8 * 16 + 6 * 8 + 8] ## rdx = original rsp (address of return address)
 	mov rsi, [rdx] ## return address (value stored in original rsp)
 	call qword ptr [NETIntro] ## Hook->NETIntro(Hook, RetAddr, InitialRSP)##
 
@@ -1489,7 +1493,7 @@ CALL_HOOK_HANDLER:
 ## adjust return address
 	lea rax, [CALL_NET_OUTRO]
 	## Here we are under the alignment trick.
-	mov r9, [rsp + 32 + 4 * 16 + 6 * 8 + 8] ## r9 = original rsp
+	mov r9, [rsp + 32 + 8 * 16 + 6 * 8 + 8] ## r9 = original rsp
 	mov qword ptr [r9], rax
 
 ## call hook handler
@@ -1527,8 +1531,11 @@ CALL_NET_OUTRO: ## this is where the handler returns...
 ######################################################################################## generic outro for both cases...
 TRAMPOLINE_EXIT:
 
-	add rsp, 32 + 16 * 4
-
+	add rsp, 32 + 16 * 8
+	movups xmm7, [rsp - 8 * 16]
+	movups xmm6, [rsp - 7 * 16]
+	movups xmm5, [rsp - 6 * 16]
+	movups xmm4, [rsp - 5 * 16]
 	movups xmm3, [rsp - 4 * 16]
 	movups xmm2, [rsp - 3 * 16]
 	movups xmm1, [rsp - 2 * 16]
