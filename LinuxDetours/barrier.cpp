@@ -684,80 +684,35 @@ FINALLY_OUTRO:
 	return NtStatus;
 }
 
-
-LONG LhInstallHook(
-	void* InEntryPoint,
-	void* InHookProc,
-	void* InCallback,
-	TRACED_HOOK_HANDLE OutHandle)
+LONG LhBarrierGetCallback(PVOID *OutValue)
 {
 	/*
 	Description:
 
-	Installs a hook at the given entry point, redirecting all
-	calls to the given hooking method. The returned handle will
-	either be released on library unloading or explicitly through
-	LhUninstallHook() or LhUninstallAllHooks().
-
-	Parameters:
-
-	- InEntryPoint
-
-	An entry point to hook. Not all entry points are hookable. In such
-	a case STATUS_NOT_SUPPORTED will be returned.
-
-	- InHookProc
-
-	The method that should be called instead of the given entry point.
-	Please note that calling convention, parameter count and return value
-	shall match EXACTLY!
-
-	- InCallback
-
-	An uninterpreted callback later available through
-	LhBarrierGetCallback().
-
-	- OutPHandle
-
-	The memory portion supplied by *OutHandle is expected to be preallocated
-	by the caller. This structure is then filled by the method on success and
-	must stay valid for hook-life time. Only if you explicitly call one of
-	the hook uninstallation APIs, you can safely release the handle memory.
-
-	Returns:
-
-	STATUS_NO_MEMORY
-
-	Unable to allocate memory around the target entry point.
-
-	STATUS_NOT_SUPPORTED
-
-	The target entry point contains unsupported instructions.
-
-	STATUS_INSUFFICIENT_RESOURCES
-
-	The limit of MAX_HOOK_COUNT simultaneous hooks was reached.
+	Is expected to be called inside a hook handler. Otherwise it
+	will fail with STATUS_NOT_SUPPORTED. The method retrieves
+	the callback initially passed to the related LhInstallHook()
+	call.
 
 	*/
+	LONG NtStatus;
+	LPTHREAD_RUNTIME_INFO Runtime;
 
-	LONG error = -1;
+	if (!IsValidPointer(OutValue, sizeof(PVOID)))
+		THROW(STATUS_INVALID_PARAMETER, (PWCHAR)L"Invalid result storage specified.");
 
-	error = DetourTransactionBegin();
+	if (!TlsGetCurrentValue(&Unit.TLS, &Runtime))
+		THROW(-1, (PWCHAR)("The caller is not inside a hook handler."));
 
-	error = DetourUpdateThread(pthread_self());
+	if (Runtime->Current != NULL)
+		*OutValue = Runtime->Callback;
+	else
+		THROW(-1, (PWCHAR)L"The caller is not inside a hook handler.");
 
-	error = DetourAttach(&(PVOID&)InEntryPoint, InHookProc);
+	RETURN;
 
-	error = DetourTransactionCommit();
-
-	TRACED_HOOK_HANDLE handle = (TRACED_HOOK_HANDLE)DetourGetHookHandleForFunction(&(PVOID&)InEntryPoint);
-
-	if (OutHandle != NULL && handle != NULL) {
-		OutHandle->Link = handle->Link;
-	}
-	if (InCallback != NULL) {
-		error = DetourSetCallbackForLocalHook(&(PVOID&)InEntryPoint, InCallback);
-	}
-	return error;
+THROW_OUTRO:
+FINALLY_OUTRO:
+	return NtStatus;
 }
 
