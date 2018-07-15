@@ -50,14 +50,14 @@ void RtlAcquireLock(RTL_SPIN_LOCK* InLock)
 {
 	pthread_mutex_lock(&InLock->Lock);
 
-	ASSERT2(!InLock->IsOwned, "memory.c - !InLock->IsOwned");
+	ASSERT2(!InLock->IsOwned, L"barrier.cpp - !InLock->IsOwned");
 
 	InLock->IsOwned = TRUE;
 }
 
 void RtlReleaseLock(RTL_SPIN_LOCK* InLock)
 {
-	ASSERT2(InLock->IsOwned, "memory.c - InLock->IsOwned");
+	ASSERT2(InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
 
 	InLock->IsOwned = FALSE;
 
@@ -66,7 +66,7 @@ void RtlReleaseLock(RTL_SPIN_LOCK* InLock)
 
 void RtlDeleteLock(RTL_SPIN_LOCK* InLock)
 {
-	ASSERT2(!InLock->IsOwned, "memory.c - InLock->IsOwned");
+	ASSERT2(!InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
 
 	pthread_mutex_destroy(&InLock->Lock);
 }
@@ -571,7 +571,7 @@ void ReleaseSelfProtection()
 	*/
 	LPTHREAD_RUNTIME_INFO		Runtime = NULL;
 
-	ASSERT2(TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected, "barrier.c - TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected");
+	ASSERT2(TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected, "barrier.cpp - TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected");
 
 	Runtime->IsProtected = FALSE;
 }
@@ -683,36 +683,3 @@ THROW_OUTRO:
 FINALLY_OUTRO:
 	return NtStatus;
 }
-
-LONG LhBarrierGetCallback(PVOID *OutValue)
-{
-	/*
-	Description:
-
-	Is expected to be called inside a hook handler. Otherwise it
-	will fail with STATUS_NOT_SUPPORTED. The method retrieves
-	the callback initially passed to the related LhInstallHook()
-	call.
-
-	*/
-	LONG NtStatus;
-	LPTHREAD_RUNTIME_INFO Runtime;
-
-	if (!IsValidPointer(OutValue, sizeof(PVOID)))
-		THROW(STATUS_INVALID_PARAMETER, (PWCHAR)L"Invalid result storage specified.");
-
-	if (!TlsGetCurrentValue(&Unit.TLS, &Runtime))
-		THROW(-1, (PWCHAR)("The caller is not inside a hook handler."));
-
-	if (Runtime->Current != NULL)
-		*OutValue = Runtime->Callback;
-	else
-		THROW(-1, (PWCHAR)L"The caller is not inside a hook handler.");
-
-	RETURN;
-
-THROW_OUTRO:
-FINALLY_OUTRO:
-	return NtStatus;
-}
-

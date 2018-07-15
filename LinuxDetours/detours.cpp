@@ -740,7 +740,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 #ifdef DETOURS_ARM64
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 360 + 6 * 8;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x160 + 6 * 8;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -1629,7 +1629,11 @@ ULONG GetTrampolineSize()
 			___TrampolineSize = (ULONG)(align4(Ptr + 7) - BasePtr);
 			return ___TrampolineSize ;
 #endif
-#if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM64)
+#if defined(DETOURS_ARM64)
+			___TrampolineSize = (ULONG)(Ptr - BasePtr) + 8;
+			return ___TrampolineSize;
+#endif    
+#if defined(DETOURS_X64) || defined(DETOURS_X86)
 			___TrampolineSize = (ULONG)(Ptr - BasePtr) + 4;
 			return ___TrampolineSize;
 #endif            
@@ -1817,7 +1821,7 @@ void* WINAPI BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
 	InHandle = (DETOUR_TRAMPOLINE*)((PBYTE)(InHandle)-(sizeof(DETOUR_TRAMPOLINE) - DETOUR_TRAMPOLINE_CODE_SIZE));
 	//InHandle -= 1;
 #endif
-
+	
 	ASSERT2(AcquireSelfProtection(), "detours.cpp - AcquireSelfProtection()");
 
 	ASSERT2(TlsGetCurrentValue(&Unit.TLS, &Info) && (Info != NULL), "detours.cpp - TlsGetCurrentValue(&Unit.TLS, &Info) && (Info != NULL)");
@@ -2381,8 +2385,8 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 
 #ifdef DETOURS_ARM64
 			UCHAR * trampolineStart = DetourGetTrampolinePtr();
-			const ULONG TrampolineSize = GetTrampolineSize() ;
-			
+			const ULONG TrampolineSize = GetTrampolineSize();
+
 			const ULONG trampolinePtrCount = 6;
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));
@@ -2459,9 +2463,11 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 				o->pTrampoline->pbDetour));
 			DETOUR_TRACE(("\n"));
 #endif // DETOURS_IA64
+
+			AddTrampolineToGlobalList(o->pTrampoline);
 		}
 	}
-	AddTrampolineToGlobalList(o->pTrampoline);
+
 
 	// Update any suspended threads.
 	for (t = s_pPendingThreads; t != NULL; t = t->pNext) {
@@ -3183,7 +3189,7 @@ BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  HANDLE hProcess,
 	// This function is meant to be a drop-in replacement for some uses of VirtualProtectEx.
 	// When "restoring" page protection, there is no need to use this function.
 {
-	return FALSE;
+	return TRUE;
 	/*
 	MEMORY_BASIC_INFORMATION mbi;
 

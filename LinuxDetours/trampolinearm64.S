@@ -94,7 +94,7 @@ CALL_NET_ENTRY:
 
         LDR     x0, =IsExecutedPtr
         ADD     x0, x0, #8 /* Hook handle (only a position hint) */
-        ADDS    x2, sp, #(10*8 + 8*16) + 8 /* original sp (address of return address)*/
+        ADD     x2, sp, #(10*8 + 8*16) + 8 /* original sp (address of return address)*/
         LDR     x1, [sp, #(10*8 + 8*16) + 8] /* return address (value stored in original sp) */
         LDR     x10, =NETIntro
         LDR     x10, [x10]
@@ -129,7 +129,7 @@ CALL_NET_OUTRO:
         MOV     x8, #0
         stp     q0, q1, [sp, #-16]!
         STP     X8, X0, [SP, #-0x10]!  /* save return handler */
-        ADDS    x1, sp, #0    /* Param 2: Address of return address */    
+        ADD     x1, sp, #0    /* Param 2: Address of return address */    
         LDR     x0, =IsExecutedPtr
         ADD     x0, x0, #8 /* get address of next Hook struct pointer */
         
