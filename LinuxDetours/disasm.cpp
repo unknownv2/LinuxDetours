@@ -4803,7 +4803,9 @@ CDetourDis::CDetourDis()
 	m_pbPool = NULL;
 	m_lExtra = 0;
 }
-
+static inline bool A$pcrel$r(uint32_t ic) {
+	return (ic & 0x0c000000) == 0x04000000 && (ic & 0xf0000000) != 0xf0000000 && (ic & 0x000f0000) == 0x000f0000;
+}
 PBYTE CDetourDis::CopyInstruction(PBYTE pDst,
 	PBYTE *ppDstPool,
 	PBYTE pSrc,
@@ -4819,12 +4821,19 @@ PBYTE CDetourDis::CopyInstruction(PBYTE pDst,
 	}
 	// Make sure the constant pool is 32-bit aligned.
 	m_pbPool -= ((ULONG_PTR)m_pbPool) & 3;
+	// based on code from substrate:
+	// https://github.com/jevinskie/substrate/blob/97fa4bae349b867ae789bb756f6c45c311d16e7d/Hooker.cpp#L107
+	if (A$pcrel$r(*(DWORD*)pSrc)) {
+		REFCOPYENTRY pEntry = &s_rceCopyTable[pSrc[1] >> 3];
+		ULONG size = (this->*pEntry->pfCopy)(pSrc, pDst);
 
-	REFCOPYENTRY pEntry = &s_rceCopyTable[pSrc[1] >> 3];
-	ULONG size = (this->*pEntry->pfCopy)(pSrc, pDst);
+		pSrc += size;
+	}
+	else {
+		ULONG size = PureCopy32(pSrc, pDst);
 
-	pSrc += size;
-
+		pSrc += size;
+	}
 	// If the target is needed, store our target
 	if (ppTarget) {
 		*ppTarget = m_pbTarget;

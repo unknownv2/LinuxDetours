@@ -561,8 +561,12 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 #endif // DETOURS_IA64
 
 #ifdef DETOURS_ARM
+#if defined(DETOURS_ARM32)
+	const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x13C + 6 * 4;
+#elif defined(DETOURS_ARM)
+	const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x10c + 6 * 4;
+#endif
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 208 + 6 * 4;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -576,6 +580,7 @@ struct _DETOUR_TRAMPOLINE
 	_DETOUR_ALIGN   rAlign[8];      // instruction alignment array.
 	PBYTE           pbRemain;       // first instruction after moved code. [free list]
 	PBYTE           pbDetour;       // first instruction of detour function.
+	INT				IsThumbTarget;
 	HOOK_ACL        LocalACL;
 	void*           Callback;
 	ULONG           HLSIndex;
@@ -624,8 +629,30 @@ inline void write_arm_opcode(PBYTE &pbCode, ULONG Opcode)
 }
 #define A$ldr_rd_$rn_im$(rd, rn, im) /* ldr rd, [rn, #im] */ \
     (0xe5100000 | ((im) < 0 ? 0 : 1 << 23) | ((rn) << 16) | ((rd) << 12) | abs(im))
+
 PBYTE detour_gen_jmp_immediate(PBYTE pbCode, PBYTE *ppPool, PBYTE pbJmpVal)
 {
+#if defined(DETOURS_ARM32)
+	PBYTE pbLiteral;
+	if (ppPool != NULL) {
+		*ppPool = *ppPool - 4;
+		pbLiteral = *ppPool;
+	}
+	else {
+		pbLiteral = align4(pbCode + 4);
+	}
+	*((PBYTE*&)pbLiteral) = pbJmpVal;
+	LONG delta = pbLiteral - align4(pbCode + 4);
+	// stored as: F0 04 1F E5 
+	*((UINT32*&)pbCode)++ = A$ldr_rd_$rn_im$(15, 15, delta - 4);
+	if (ppPool == NULL) {
+		if (((ULONG)pbCode & 2) != 0) {
+			write_arm_opcode(pbCode, 0xe320f000);
+		}
+		pbCode += 4;
+	}
+	//*((UINT32*&)pbCode)++ = (UINT32)0xF004E51F | (delta);
+#elif defined(DETOURS_ARM)
 	PBYTE pbLiteral;
 	if (ppPool != NULL) {
 		*ppPool = *ppPool - 4;
@@ -634,16 +661,6 @@ PBYTE detour_gen_jmp_immediate(PBYTE pbCode, PBYTE *ppPool, PBYTE pbJmpVal)
 	else {
 		pbLiteral = align4(pbCode + 6);
 	}
-
-#if defined(DETOURS_ARM32)
-
-	*((PBYTE*&)pbLiteral) = pbJmpVal;
-	LONG delta = pbLiteral - align4(pbCode + 4);
-	// stored as: F0 04 1F E5 
-	*((UINT32*&)pbCode)++ = A$ldr_rd_$rn_im$(15, 15, delta);
-
-	//*((UINT32*&)pbCode)++ = (UINT32)0xF004E51F | (delta);
-#elif defined(DETOURS_ARM)
 	*((PBYTE*&)pbLiteral) = DETOURS_PBYTE_TO_PFUNC(pbJmpVal);
 	LONG delta = pbLiteral - align4(pbCode + 4);
 
@@ -667,7 +684,7 @@ inline PBYTE detour_gen_brk(PBYTE pbCode, PBYTE pbLimit)
 {
 	while (pbCode < pbLimit) {
 #if defined(DETOURS_ARM32)
-		write_arm_opcode(pbCode, 0Xe320f000);
+		write_arm_opcode(pbCode, 0xe320f000);
 #elif defined(DETOURS_ARM)
 		write_thumb_opcode(pbCode, 0xdefe);
 #endif
@@ -1822,7 +1839,7 @@ void* WINAPI BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
 {
 	DETOUR_TRACE(("Barrier Outro InHandle=%p, InAddrOfRetAddr=%p \n",
 		InHandle, InAddrOfRetAddr));
-
+	
 	/*
 	Description:
 
@@ -2384,9 +2401,18 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));
 			o->pTrampoline->HookIntro = (PVOID)BarrierIntro;
 			o->pTrampoline->HookOutro = (PVOID)BarrierOutro;
-			o->pTrampoline->Trampoline = endOfTramp;
-			o->pTrampoline->OldProc = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->rbCode);
-			o->pTrampoline->HookProc = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->pbDetour);
+			if (o->pTrampoline->IsThumbTarget) {
+				o->pTrampoline->Trampoline = DETOURS_PBYTE_TO_PFUNC(endOfTramp);
+				o->pTrampoline->OldProc = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->rbCode);
+				o->pTrampoline->HookProc = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->pbDetour);
+				*o->ppbPointer = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->rbCode);
+			}
+			else {
+				o->pTrampoline->Trampoline = (endOfTramp);
+				o->pTrampoline->OldProc = (o->pTrampoline->rbCode);
+				o->pTrampoline->HookProc = (o->pTrampoline->pbDetour);
+				*o->ppbPointer = (o->pTrampoline->rbCode);
+			}
 			o->pTrampoline->IsExecutedPtr = new int();
 			// relocate relative addresses the trampoline uses the above function pointers   
 			for (int x = 0; x < trampolinePtrCount; x++) {
@@ -2397,7 +2423,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, (PBYTE)o->pTrampoline->Trampoline);
 			// PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, o->pTrampoline->pbDetour);
 			pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
-			*o->ppbPointer = DETOURS_PBYTE_TO_PFUNC(o->pTrampoline->rbCode);
+	
 			UNREFERENCED_PARAMETER(pbCode);
 #endif // DETOURS_ARM
 
@@ -2794,7 +2820,8 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	// On ARM, we need an extra instruction when the function isn't 32-bit aligned.
 	// Check if the existing code is another detour (or at least a similar
 	// "ldr pc, [PC+0]" jump.
-	ULONG isThumb = (ULONG)pbTarget & 1;
+	//ULONG isThumb =
+	pTrampoline->IsThumbTarget = (ULONG)pbTarget & 1;
 	if ((ULONG)pbTarget & 2) {
 		cbJump += 2;
 
