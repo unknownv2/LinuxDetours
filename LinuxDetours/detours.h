@@ -41,7 +41,9 @@
 
 #elif defined(_ARM_)
 #define DETOURS_ARM
-
+#if defined(_ARM32_)
+#define DETOURS_ARM32
+#endif
 #elif defined(_ARM64_)
 #define DETOURS_ARM64
 
@@ -64,7 +66,7 @@
 #endif
 
 #define VER_DETOURS_BITS    DETOUR_STRINGIFY(DETOURS_BITS)
-
+#define DetourExport		__attribute__((visibility("default")))
 //////////////////////////////////////////////////////////////////////////////
 //
 
@@ -640,7 +642,7 @@ LONG InterlockedCompareExchange(_Inout_ LONG *ptr, _In_ LONG nval, _In_ LONG ova
 #include <stdio.h>
 #include "limits.h"
 #else
-#define DETOUR_TRACE(x)
+#define DETOUR_TRACE(x) printf x
 #define DETOUR_BREAK()
 #endif
 #endif

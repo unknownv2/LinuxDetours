@@ -110,7 +110,7 @@ LONG RtlProtectMemory(void* InPointer, ULONG InSize, ULONG InNewProtection)
 	NTSTATUS            NtStatus;
 
 	if (mprotect(InPointer, (size_t)InSize, (int)InNewProtection))
-		THROW(-1, "Unable to make memory executable.")
+		THROW(-1, (PWCHAR)"Unable to make memory executable.")
 	else
 		RETURN;
 
@@ -171,7 +171,7 @@ void RtlAssert(BOOL InAssert, LPCWSTR lpMessageText)
 }
 
 
-LONG LhSetGlobalInclusiveACL(
+LONG DetourExport LhSetGlobalInclusiveACL(
 	ULONG* InThreadIdList,
 	ULONG InThreadCount)
 {
@@ -192,7 +192,7 @@ LONG LhSetGlobalInclusiveACL(
 	return LhSetACL(LhBarrierGetAcl(), FALSE, InThreadIdList, InThreadCount);
 }
 
-LONG LhSetGlobalExclusiveACL(
+LONG DetourExport LhSetGlobalExclusiveACL(
 	ULONG* InThreadIdList,
 	ULONG InThreadCount)
 {
@@ -298,7 +298,7 @@ HOOK_ACL* LhBarrierGetAcl()
 	return &Unit.GlobalACL;
 }
 
-LONG LhBarrierProcessAttach()
+LONG DetourExport LhBarrierProcessAttach()
 {
 	/*
 	Description:
@@ -471,7 +471,7 @@ void LhBarrierProcessDetach()
 	RtlZeroMemory(&Unit, sizeof(Unit));
 }
 
-void LhBarrierThreadDetach()
+void DetourExport LhBarrierThreadDetach()
 {
 	/*
 	Description:
@@ -559,7 +559,7 @@ BOOL AcquireSelfProtection()
 	return TRUE;
 }
 
-void ReleaseSelfProtection()
+void DetourExport ReleaseSelfProtection()
 {
 	/*
 	Description:
@@ -599,7 +599,7 @@ BOOL ACLContains(
 }
 
 
-BOOL IsThreadIntercepted(
+BOOL DetourExport IsThreadIntercepted(
 	HOOK_ACL* LocalACL,
 	ULONG InThreadID)
 {
@@ -652,7 +652,7 @@ BOOL IsThreadIntercepted(
 	}
 }
 
-LONG LhBarrierGetCallback(PVOID* OutValue)
+LONG DetourExport LhBarrierGetCallback(PVOID* OutValue)
 {
 	/*
 	Description:
@@ -682,4 +682,18 @@ LONG LhBarrierGetCallback(PVOID* OutValue)
 THROW_OUTRO:
 FINALLY_OUTRO:
 	return NtStatus;
+}
+
+PWCHAR DetourExport RtlGetLastErrorStringCopy()
+{
+	ULONG len = (ULONG)(strlen(LastError) + 1) * sizeof(PWCHAR);
+	PWCHAR pBuffer = (PWCHAR)malloc(len);
+	CopyMemory(pBuffer, LastError, len);
+
+	return pBuffer;
+}
+
+PWCHAR DetourExport RtlGetLastErrorString()
+{
+	return LastError;
 }

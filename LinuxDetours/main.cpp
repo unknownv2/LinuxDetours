@@ -10,26 +10,26 @@ unsigned int WINAPI TimedSleepEx(unsigned int seconds)
 
 	return ret;
 }
-unsigned int WINAPI TestDetourB(unsigned int seconds)
+unsigned int WINAPI TestDetourB(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
 	return seconds + 1;
 }
-unsigned int WINAPI TestDetourA(unsigned int seconds)
+unsigned int WINAPI TestDetourA(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
-	printf("Detoured B -> A\n");
-	return TestDetourB(seconds + 2);
+	printf("Detoured B -> A %d %d %d %d %d %d\n", a, b, c, d, e);
+	return TestDetourB(seconds + 2, a, b, c, d, e);
 }
 
 VOID* WINAPI TestSleep(void*)
 {
 	printf("\n");
 	fflush(stdout);
-	printf("detours: TestDetourB returned %d\n", TestDetourB(1));
+	printf("detours: TestDetourB returned %d\n", TestDetourB(1, 2, 3, 4, 5, 6));
 	printf("detours: Calling sleep for 1 second.\n");
 	sleep(1);
 	printf("detours: Calling sleep again for 1 second.\n");
 	sleep(1);
-
+	
 	printf("detours: Done sleeping.\n\n");
 
 	return NULL;
@@ -54,27 +54,32 @@ double test1d(double a1, double a2, double a3)
 }
 int main()
 {
-
-	TestDetourA(2);
-	test1d(1.0, 2.0,3.0);
-
+	//__float128 ss = 128.0;
+	//TestDetourA(2, 3, 4,5,6,7);
+	//test1d(1.0, 2.0,3.0);
+	
 	LhBarrierProcessAttach();
 
 	LhCriticalInitialize();
-
+	
 	LONG selfHandle = 0;
+	LONG selfHandle2 = 0;
 	TRACED_HOOK_HANDLE outHandle = new HOOK_TRACE_INFO();
+	TRACED_HOOK_HANDLE outHandle2 = new HOOK_TRACE_INFO();
 
 	//sleep(1);
-	LhInstallHook((void*)TestDetourB, (void*)TestDetourA, &selfHandle, outHandle);
-	//LhInstallHook((void*)TrueSleepEx, (void*)TimedSleepEx, &selfHandle, outHandle);
+	//LhInstallHook((void*)TestDetourB, (void*)TestDetourA, &selfHandle, outHandle);
+	LhInstallHook((void*)TrueSleepEx, (void*)TimedSleepEx, &selfHandle2, outHandle2);
 	ULONG ret = LhSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle);
+	ret = LhSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle2);
 	pthread_t t;
 	pthread_create(&t, NULL, TestSleep, NULL);
 	pthread_join(t, NULL);
 	LhUninstallHook(outHandle);
+	LhUninstallHook(outHandle2);
 
 	delete outHandle;
+	delete outHandle2;
 
 	sleep(1);
 
