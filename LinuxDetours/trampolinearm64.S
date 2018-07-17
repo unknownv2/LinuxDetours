@@ -128,10 +128,8 @@ CALL_HOOK_HANDLER:
         B       TRAMPOLINE_EXIT
  /* this is where the handler returns... */
 CALL_NET_OUTRO:
-        MOV     x9, #0
-        str     x29, [sp, #-16]!
-        mov     x29, sp        
-        sub	sp, sp, #(10*8 + 8*16)
+        MOV     x10, #0
+         sub	sp, sp, #(10*8 + 8*16)
         stp	q0, q1, [sp, #(0*16)]
         stp	q2, q3, [sp, #(2*16)]
         stp	q4, q5, [sp, #(4*16)]
@@ -140,28 +138,30 @@ CALL_NET_OUTRO:
         stp	x2, x3, [sp, #(8*16+2*8)]
         stp	x4, x5, [sp, #(8*16+4*8)]
         stp	x6, x7, [sp, #(8*16+6*8)]
-        stp	x8, x9, [sp, #(8*16+8*8)]    
+        stp	x8, x10, [sp, #(8*16+8*8)]  
 
-        #stp     q0, q1, [sp, #-16]!
-        #STP     X8, X0, [SP, #-0x10]!  /* save return handler */
-        ADD      x1, sp, #(8*16+9*8)    /* Param 2: Address of return address */    
-        #LDR     x0, =IsExecutedPtr
-        #ADD     x0, x0, #8 /* get address of next Hook struct pointer */
+        /*stp     q0, q1, [sp, #-16]!
+        stp	x0, x1, [sp, #-16]!
+        stp	x2, x3, [sp, #-16]!
+        stp	x4, x5, [sp, #-16]!
+        stp	x6, x7, [sp, #-16]!
+
+        STP     X10, X0, [SP, #-0x10]!*/  /* save return handler */
+        #ADD     x1, sp, #0    /* Param 2: Address of return address */
+        ADD     x1, sp, #(8*16+9*8)     
         ADR     x0, start
+        
         LDR     x9, NETOutro
-        /*LDR     x9, [x9] */
         BLR     x9       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/
 
-        LDR     x9, IsExecutedPtr
-        /*LDR     x9, [x9]  */  
+        LDR     x9, IsExecutedPtr 
 try_dec_lock3:        
         ldxr    x0, [x9]
         SUBS    x0, x0, #1
         stxr    w1, x0, [x9]
         CMP     w1, #0
         BNE     try_dec_lock3
-
-        ldp	q0, q1, [sp, #(0*16)]
+       ldp	q0, q1, [sp, #(0*16)]
         ldp	q2, q3, [sp, #(2*16)]
         ldp	q4, q5, [sp, #(4*16)]
         ldp	q6, q7, [sp, #(6*16)]
@@ -169,12 +169,14 @@ try_dec_lock3:
         ldp	x2, x3, [sp, #(8*16+2*8)]
         ldp	x4, x5, [sp, #(8*16+4*8)]
         ldp	x6, x7, [sp, #(8*16+6*8)]
-        ldp	x8, x30, [sp, #(8*16+8*8)]
-        mov	sp, x29
-        ldr	x29,  [sp], #16
-        #mov     x30, x9
-        #LDP     X30, X0, [SP], #0x10
-        #LDP     q0, q1, [SP], #0x10
+        ldp	x8, x30,  [sp, #(8*16+8*8)]
+        add	sp, sp, #(10*8 + 8*16)
+        /*LDP     X30, X0, [SP], #0x10     
+        LDP     x6, x7, [SP], #0x10      
+        LDP     x4, x5, [SP], #0x10       
+        LDP     x2, x3, [SP], #0x10                
+        LDP     x0, x1, [SP], #0x10                           
+        LDP     q0, q1, [SP], #0x10*/
 /* finally return to saved return address - the caller of this trampoline...  */       
         RET
 

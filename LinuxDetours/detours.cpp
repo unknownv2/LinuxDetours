@@ -777,7 +777,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 #ifdef DETOURS_ARM64
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x184;// +6 * 8;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x178;//0x138;// +6 * 8;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -1833,7 +1833,7 @@ DONT_INTERCEPT:
 
 		ReleaseSelfProtection();
 	}
-
+	
 	return FALSE;
 }
 void* WINAPI BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
@@ -1852,7 +1852,7 @@ void* WINAPI BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
 	*/
 	RUNTIME_INFO*			Runtime;
 	LPTHREAD_RUNTIME_INFO	Info;
-
+	
 #if defined(DETOURS_X64) || defined(DETOURS_ARM) || defined(DETOURS_ARM64)
 	InHandle = (DETOUR_TRAMPOLINE*)((PBYTE)(InHandle)-(sizeof(DETOUR_TRAMPOLINE) - DETOUR_TRAMPOLINE_CODE_SIZE));
 	//InHandle -= 1;
@@ -2453,7 +2453,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			//memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));
 			memcpy(endOfTramp, trampolineStart, TrampolineSize);
-
+			
 			o->pTrampoline->HookIntro = (PVOID)BarrierIntro;
 			o->pTrampoline->HookOutro = (PVOID)BarrierOutro;
 			o->pTrampoline->Trampoline = endOfTramp;
@@ -2483,7 +2483,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 				o->pbTarget[0], o->pbTarget[1], o->pbTarget[2], o->pbTarget[3],
 				o->pbTarget[4], o->pbTarget[5], o->pbTarget[6], o->pbTarget[7],
 				o->pbTarget[8], o->pbTarget[9], o->pbTarget[10], o->pbTarget[11]));
-
+			
 			DETOUR_TRACE(("detours: pbTramp =%p: "
 				"%02x %02x %02x %02x "
 				"%02x %02x %02x %02x "
