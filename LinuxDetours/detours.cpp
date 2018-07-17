@@ -562,9 +562,9 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 #ifdef DETOURS_ARM
 #if defined(DETOURS_ARM32)
-	const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x134;// +6 * 4;
+	const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x110;// +6 * 4;
 #elif defined(DETOURS_ARM)
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0xE8;// +6 * 4;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x110;// 0xE8;// +6 * 4;
 
 #endif
 
@@ -1606,6 +1606,7 @@ extern "C" void Trampoline_ASM_x86();
 
 #ifdef DETOURS_ARM
 extern "C" void Trampoline_ASM_ARM();
+extern "C" void Trampoline_ASM_ARM_T();
 #endif
 
 #ifdef DETOURS_ARM64
@@ -1623,7 +1624,6 @@ UCHAR* DetourGetTrampolinePtr()
 #ifdef DETOURS_X86
 	UCHAR* Ptr = (UCHAR*)Trampoline_ASM_x86;
 #endif
-
 #ifdef DETOURS_ARM
 	UCHAR* Ptr = (UCHAR*)Trampoline_ASM_ARM;
 	Ptr += 5 * 4;
@@ -1643,7 +1643,22 @@ UCHAR* DetourGetTrampolinePtr()
 	return Ptr;
 #endif    
 }
+UCHAR* DetourGetArmTrampolinePtr(ULONG isThumb)
+{
+	// bypass possible Visual Studio debug jump table
+	UCHAR* Ptr = NULL;
+#ifdef DETOURS_ARM
+	if (isThumb) {
+		Ptr = (UCHAR*)Trampoline_ASM_ARM_T;
+	}
+	else {
+		Ptr = (UCHAR*)Trampoline_ASM_ARM;
+	}
+#endif
+	Ptr += 5 * 4;
 
+	return Ptr;  
+}
 ULONG GetTrampolineSize()
 {
 	UCHAR*		Ptr = DetourGetTrampolinePtr();
@@ -1977,34 +1992,28 @@ LONG DetourExport LhUninstallHook(TRACED_HOOK_HANDLE InHandle)
 	{
 		if ((InHandle->Link != NULL) && LhIsValidHandle(InHandle, &Hook))
 		{
+			DetourTransactionBegin();
+			DetourUpdateThread(pthread_self());
+			DetourDetach(&(PVOID&)Hook->OldProc, Hook->pbDetour);
+
 			InHandle->Link = NULL;
 
 			if (Hook->HookProc != NULL)
 			{
-				if (!mprotect(detour_get_page(Hook), detour_get_page_size(), PAGE_READWRITE)) {
-					Hook->HookProc = NULL;
-					if (mprotect(detour_get_page(Hook), detour_get_page_size(), PAGE_EXECUTE_READ)) {
-
-						return -3;
-					}
-				}
+				Hook->HookProc = NULL;
 
 				IsAllocated = TRUE;
 			}
+
+			error = DetourTransactionCommit();
+
+			if (!IsAllocated)
+			{
+				RtlReleaseLock(&GlobalHookLock);
+
+				RETURN;
+			}
 		}
-		DetourTransactionBegin();
-		DetourUpdateThread(pthread_self());
-		DetourDetach(&(PVOID&)Hook->OldProc, Hook->pbDetour);
-
-		error = DetourTransactionCommit();
-
-		if (!IsAllocated)
-		{
-			RtlReleaseLock(&GlobalHookLock);
-
-			RETURN;
-		}
-
 	}
 	RtlReleaseLock(&GlobalHookLock);
 
@@ -2398,7 +2407,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #endif // DETOURS_X86
 
 #ifdef DETOURS_ARM
-			UCHAR * trampoline = DetourGetTrampolinePtr();
+			UCHAR * trampoline = DetourGetArmTrampolinePtr(o->pTrampoline->IsThumbTarget);
 			const ULONG TrampolineSize = GetTrampolineSize();
 			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
 
