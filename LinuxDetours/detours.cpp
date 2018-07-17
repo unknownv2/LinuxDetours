@@ -777,7 +777,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 #ifdef DETOURS_ARM64
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x188;// +6 * 8;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x184;// +6 * 8;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -2446,6 +2446,8 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
 
 				//error, handle this better
+				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)", 
+					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
 			}
 			const ULONG trampolinePtrCount = 2;
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
@@ -2762,7 +2764,9 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	DETOUR_TRACE(("  ppldTarget=%p, code=%p [gp=%p]\n",
 		ppldTarget, pbTarget, pTargetGlobals));
 #else // DETOURS_IA64
+#ifdef DETOURS_ARM
 	ULONG IsThumbTarget = (ULONG)pbTarget & 1;
+#endif
 	pbTarget = (PBYTE)DetourCodeFromPointer(pbTarget, NULL);
 	pDetour = DetourCodeFromPointer(pDetour, NULL);
 #endif // !DETOURS_IA64

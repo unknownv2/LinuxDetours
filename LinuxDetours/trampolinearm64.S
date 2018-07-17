@@ -129,7 +129,7 @@ CALL_HOOK_HANDLER:
  /* this is where the handler returns... */
 CALL_NET_OUTRO:
         MOV     x9, #0
-        stp     x29, x30, [sp, #-16]!
+        str     x29, [sp, #-16]!
         mov     x29, sp        
         sub	sp, sp, #(10*8 + 8*16)
         stp	q0, q1, [sp, #(0*16)]
@@ -169,10 +169,10 @@ try_dec_lock3:
         ldp	x2, x3, [sp, #(8*16+2*8)]
         ldp	x4, x5, [sp, #(8*16+4*8)]
         ldp	x6, x7, [sp, #(8*16+6*8)]
-        ldp	x8, x9, [sp, #(8*16+8*8)]
+        ldp	x8, x30, [sp, #(8*16+8*8)]
         mov	sp, x29
-        ldp	x29, x30, [sp], #16
-        mov     x30, x9
+        ldr	x29,  [sp], #16
+        #mov     x30, x9
         #LDP     X30, X0, [SP], #0x10
         #LDP     q0, q1, [SP], #0x10
 /* finally return to saved return address - the caller of this trampoline...  */       
