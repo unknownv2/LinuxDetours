@@ -564,7 +564,8 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 #if defined(DETOURS_ARM32)
 	const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x134;// +6 * 4;
 #elif defined(DETOURS_ARM)
-	const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x10c + 6 * 4;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0xE8;// +6 * 4;
+
 #endif
 
 
@@ -2333,7 +2334,10 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_X64
 			PBYTE trampoline = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
+			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
 
+				//error, handle this better
+			}
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampoline, TrampolineSize);
 			o->pTrampoline->HookIntro = (PVOID)BarrierIntro;
@@ -2354,7 +2358,10 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_X86
 			PBYTE trampoline = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
+			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
 
+				//error, handle this better
+			}
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampoline, TrampolineSize);
 			o->pTrampoline->HookIntro = BarrierIntro;
@@ -2393,7 +2400,10 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_ARM
 			UCHAR * trampoline = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
+			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
 
+				//error, handle this better
+			}
 			//*(PBYTE)&o->pTrampoline->rbTrampolineCode = 0;
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			//const ULONG trampolinePtrCount = 6;
@@ -2433,7 +2443,10 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_ARM64
 			UCHAR * trampolineStart = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
+			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
 
+				//error, handle this better
+			}
 			const ULONG trampolinePtrCount = 2;
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			//memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));
@@ -2749,6 +2762,7 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	DETOUR_TRACE(("  ppldTarget=%p, code=%p [gp=%p]\n",
 		ppldTarget, pbTarget, pTargetGlobals));
 #else // DETOURS_IA64
+	ULONG IsThumbTarget = (ULONG)pbTarget & 1;
 	pbTarget = (PBYTE)DetourCodeFromPointer(pbTarget, NULL);
 	pDetour = DetourCodeFromPointer(pDetour, NULL);
 #endif // !DETOURS_IA64
@@ -2826,7 +2840,7 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	// Check if the existing code is another detour (or at least a similar
 	// "ldr pc, [PC+0]" jump.
 	//ULONG isThumb =
-	pTrampoline->IsThumbTarget = (ULONG)pbTarget & 1;
+	pTrampoline->IsThumbTarget = IsThumbTarget;
 	if ((ULONG)pbTarget & 2) {
 		cbJump += 2;
 
