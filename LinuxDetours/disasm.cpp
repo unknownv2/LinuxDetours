@@ -4806,6 +4806,11 @@ CDetourDis::CDetourDis()
 static inline bool A$pcrel$r(uint32_t ic) {
 	return (ic & 0x0c000000) == 0x04000000 && (ic & 0xf0000000) != 0xf0000000 && (ic & 0x000f0000) == 0x000f0000;
 }
+#define A$add_rd_rn_$im(rd, rn, im) /* add, rd, rn, #im */ \
+    (0xe2800000 | ((rn) << 16) | ((rd) << 0xC) | (0x06 << 0x08) | (im & 0xff))
+
+#define A$add_rd_rn_$im(rd, rn, im) /* add, rd, rn, #im */ \
+    (0xe2800000 | ((rn) << 16) | ((rd) << 0xC) | (0x0A << 0x08) | (im & 0xff))
 PBYTE CDetourDis::CopyInstruction(PBYTE pDst,
 	PBYTE *ppDstPool,
 	PBYTE pSrc,
