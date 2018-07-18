@@ -276,7 +276,7 @@ LONG LhSetACL(
 	for (Index = 0; Index < InThreadCount; Index++)
 	{
 		if (InThreadIdList[Index] == 0)
-			InThreadIdList[Index] = pthread_self();
+			InThreadIdList[Index] = (ULONG)pthread_self();
 	}
 
 	// set ACL...
@@ -616,7 +616,7 @@ BOOL DetourExport IsThreadIntercepted(
 	ULONG				CheckID;
 
 	if (InThreadID == 0)
-		CheckID = pthread_self();
+		CheckID = (ULONG)pthread_self();
 	else
 		CheckID = InThreadID;
 

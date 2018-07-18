@@ -2907,11 +2907,12 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	ULONG nAlign = 0;
 
 #ifdef DETOURS_ARM
+
 	// On ARM, we need an extra instruction when the function isn't 32-bit aligned.
 	// Check if the existing code is another detour (or at least a similar
 	// "ldr pc, [PC+0]" jump.
-	//ULONG isThumb =
 	pTrampoline->IsThumbTarget = IsThumbTarget;
+
 	if ((ULONG)pbTarget & 2) {
 		cbJump += 2;
 
@@ -2940,7 +2941,7 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 
 	while (cbTarget < cbJump) {
 		PBYTE pbOp = pbSrc;
-		LONG lExtra = 0;
+		LONG lExtra = IsThumbTarget;
 
 		DETOUR_TRACE((" DetourCopyInstruction(%p,%p)\n",
 			pbTrampoline, pbSrc));
