@@ -4796,15 +4796,11 @@ CDetourDis32::CDetourDis32()
 	m_pbPool = NULL;
 	m_lExtra = 0;
 }
-static inline bool A$pcrel$r(uint32_t ic) {
-	return (ic & 0x0c000000) == 0x04000000 && (ic & 0xf0000000) != 0xf0000000 && (ic & 0x000f0000) == 0x000f0000;
+// placeholder for determining wether to relocate instruction
+static inline bool IsRelInstruction(DWORD opcode)
+{
+	return false;
 }
-
-#define A$add_rd_rn_$im(rd, rn, im) /* add, rd, rn, #im */ \
-    (0xe2800000 | ((rn) << 16) | ((rd) << 0xC) | (0x06 << 0x08) | (im & 0xff))
-
-#define A$add_rd_rn_$im(rd, rn, im) /* add, rd, rn, #im */ \
-    (0xe2800000 | ((rn) << 16) | ((rd) << 0xC) | (0x0A << 0x08) | (im & 0xff))
 
 PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
 	PBYTE *ppDstPool,
@@ -4821,7 +4817,7 @@ PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
 	}
 	// Make sure the constant pool is 32-bit aligned.
 	m_pbPool -= ((ULONG_PTR)m_pbPool) & 3;
-	if (A$pcrel$r(*(DWORD*)pSrc)) {
+	if (IsRelInstruction(*(DWORD*)pSrc)) {
 		REFCOPYENTRY pEntry = &s_rceCopyTable[pSrc[1] >> 3];
 		ULONG size = (this->*pEntry->pfCopy)(pSrc, pDst);
 
