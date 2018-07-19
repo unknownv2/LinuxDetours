@@ -1764,7 +1764,7 @@ ULONG GetTrampolineSize()
 			return ___TrampolineSize;
 #endif    
 #if defined(DETOURS_X64) || defined(DETOURS_X86)
-			___TrampolineSize = (ULONG)(Ptr - BasePtr) + 4;
+			___TrampolineSize = (ULONG)(Ptr - BasePtr);
 			return ___TrampolineSize;
 #endif            
 		}
@@ -2439,9 +2439,10 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_X64
 			PBYTE trampoline = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
-			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
-
+			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
 				//error, handle this better
+				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
+					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
 			}
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampoline, TrampolineSize);
@@ -2464,8 +2465,9 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			PBYTE trampoline = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
 			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
-
 				//error, handle this better
+				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
+					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
 			}
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampoline, TrampolineSize);
@@ -2506,8 +2508,9 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			UCHAR * trampoline = DetourGetArmTrampolinePtr(o->pTrampoline->IsThumbTarget);
 			const ULONG TrampolineSize = GetTrampolineSize(o->pTrampoline->IsThumbTarget);
 			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
-
 				//error, handle this better
+				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
+					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
 			}
 			//*(PBYTE)&o->pTrampoline->rbTrampolineCode = 0;
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
@@ -2549,7 +2552,6 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			UCHAR * trampolineStart = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
 			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
-
 				//error, handle this better
 				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)", 
 					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
@@ -2872,6 +2874,8 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 #ifdef DETOURS_ARM
 	ULONG IsThumbTarget = (ULONG)pbTarget & 1;
 	PVOID pGlobals = &IsThumbTarget;
+#else 
+	PVOID pGlobals = NULL;
 #endif
 	pbTarget = (PBYTE)DetourCodeFromPointer(pbTarget, &(PVOID &)pGlobals);
 	pDetour = DetourCodeFromPointer(pDetour, &(PVOID &)pGlobals);
@@ -2980,8 +2984,11 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 
 	while (cbTarget < cbJump) {
 		PBYTE pbOp = pbSrc;
+#ifdef DETOURS_ARM
 		LONG lExtra = IsThumbTarget;
-
+#else
+		LONG lExtra = NULL;
+#endif
 		DETOUR_TRACE((" DetourCopyInstruction(%p,%p)\n",
 			pbTrampoline, pbSrc));
 		pbSrc = (PBYTE)
