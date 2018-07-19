@@ -55,7 +55,7 @@
 #endif
 
 #ifndef SIZE_MAX
-#ifdef _WIN64
+#ifdef _UNIX64
 #define SIZE_MAX _UI64_MAX
 #else
 #define SIZE_MAX UINT_MAX

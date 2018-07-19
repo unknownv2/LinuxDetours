@@ -177,8 +177,7 @@
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
-    <Object Include="trampolinearm.o" />
-    <Object Include="trampolinearm32.o" />
+    <Object Include="trampolinearm64.o" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -236,7 +235,7 @@
       <AdditionalOptions>-lpthread -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ClCompile>
-      <PreprocessorDefinitions>_ARM64_</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_ARM64_;_UNIX64</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Arm-Thumb|ARM'">

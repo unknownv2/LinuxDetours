@@ -51,7 +51,7 @@
 #error Unknown architecture (x86, amd64, ia64, arm, arm64)
 #endif
 
-#ifdef _WIN64
+#ifdef _UNIX64
 #undef DETOURS_32BIT
 #define DETOURS_64BIT 1
 #define DETOURS_BITS 64
