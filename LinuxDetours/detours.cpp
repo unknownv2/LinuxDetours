@@ -909,7 +909,7 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 	if (ppGlobals != NULL) {
 		*ppGlobals = NULL;
 	}
-
+	// From here: https://github.com/Microsoft/Detours/pull/8
 	// Skip over the import jump if there is one.
 	pbCode = (PBYTE)pbCode;
 	ULONG Opcode = fetch_opcode(pbCode);
