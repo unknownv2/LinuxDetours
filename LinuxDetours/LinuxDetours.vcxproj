@@ -177,11 +177,11 @@
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
-    <Object Include="trampolinearm64.o" />
+    <Object Include="trampolinex64.o" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_AMD64_;DETOURS_64BIT;_WIN64</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_AMD64_;_UNIX64</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalOptions>-lpthread -ldl %(AdditionalOptions)</AdditionalOptions>

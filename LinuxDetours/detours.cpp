@@ -314,7 +314,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 //
 #ifdef DETOURS_X64
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 272;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x140;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -1586,7 +1586,7 @@ IsExecutedPtr:
 
 ###################################################################################### call original method
 		lea rax, [IsExecutedPtr]
-		mov rax, [rax]
+		#mov rax, [rax]
 		.byte 0xF0 ## interlocked decrement execution counter
 		dec qword ptr [rax]
 
@@ -1612,7 +1612,7 @@ CALL_NET_ENTRY:
 
 	## call original method
 		lea rax, [IsExecutedPtr]
-		mov rax, [rax]
+		#mov rax, [rax]
 		.byte 0xF0 ## interlocked decrement execution counter
 		dec qword ptr [rax]
 
@@ -1646,7 +1646,7 @@ CALL_NET_OUTRO: ## this is where the handler returns...
 	call qword ptr [NETOutro] ## Hook->NETOutro(Hook)##
 
 	lea rax, [IsExecutedPtr]
-	mov rax, [rax]
+	#mov rax, [rax]
 	.byte 0xF0 ## interlocked decrement execution counter
 	dec qword ptr [rax]
 
@@ -1685,10 +1685,7 @@ TRAMPOLINE_EXIT:
 
 
 ## outro signature, to automatically determine code size
-	.byte 78h
-	.byte 56h
-	.byte 34h
-	.byte 12h
+	.byte 0x78, 0x56, 0x34, 0x12
 
 ##Trampoline_ASM_x64 ENDP
 )");
