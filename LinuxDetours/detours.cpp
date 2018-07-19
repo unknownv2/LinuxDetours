@@ -561,7 +561,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 #if defined(DETOURS_ARM32)
 	const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x110;// +6 * 4;
 #elif defined(DETOURS_ARM)
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x110;// 0xE8;// +6 * 4;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x110;//0xD4;// 0xE8;// +6 * 4;
 
 #endif
 
@@ -699,39 +699,75 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 	if (pbCode == NULL) {
 		return NULL;
 	}
+	ULONG * isThumb = NULL;
 	if (ppGlobals != NULL) {
+		isThumb = (ULONG *)*ppGlobals;
 		*ppGlobals = NULL;
 	}
 
-	// Skip over the import jump if there is one.
-	//pbCode = (PBYTE)DETOURS_PFUNC_TO_PBYTE(pbCode);
-	ULONG Opcode = fetch_opcode(pbCode);
+	if (isThumb != nullptr && *isThumb == 1) {
+		// read Thumb instruction set
 
-	if ((Opcode & 0xe28F0000) == 0xe28F0000) {          // ADR r12, #xxxx //movw r12,#xxxx
-		ULONG Opcode2 = fetch_opcode(pbCode + 4);
+		// Skip over the import jump if there is one.
+		pbCode = (PBYTE)DETOURS_PFUNC_TO_PBYTE(pbCode);
+		ULONG Opcode = fetch_thumb_opcode(pbCode);
 
-		if ((Opcode2 & 0xe28C0000) == 0xe28C0000) {      // ADD r12, r12, #xxxx // movt r12,#xxxx
-			ULONG Opcode3 = fetch_opcode(pbCode + 8);
-			if ((Opcode3 & 0xE5BC0000) == 0xE5BC0000) {                 // ldr  pc,[r12]
-				ULONG tgt = (Opcode2 << 12) & 0x000FFFFF;
-				PBYTE pbTarget = /*(PBYTE)(((Opcode2 << 12) & 0xf7000000) |
-					((Opcode2 << 1) & 0x08000000) |
-					((Opcode2 << 16) & 0x00ff0000) |
-					((Opcode >> 4) & 0x0000f700) |
-					((Opcode >> 15) & 0x00000800) |
-					((Opcode >> 0) & 0x000000ff)); */
-		
-				//pbTarget = (PBYTE)(*(ULONG*)((pbCode + 8 + tgt + (Opcode3 & 0xFFF))));
-				pbTarget = ((pbCode + 8 + tgt + (Opcode3 & 0xFFF)));
-				if (detour_is_imported(pbCode, pbTarget)) {
-					PBYTE pbNew = *(PBYTE *)pbTarget;
-					pbNew = DETOURS_PFUNC_TO_PBYTE(pbNew);
-					DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
-					return pbNew;
+		if ((Opcode & 0xfbf08f00) == 0xf2400c00) {          // movw r12,#xxxx
+			ULONG Opcode2 = fetch_thumb_opcode(pbCode + 4);
+
+			if ((Opcode2 & 0xfbf08f00) == 0xf2c00c00) {      // movt r12,#xxxx
+				ULONG Opcode3 = fetch_thumb_opcode(pbCode + 8);
+				if (Opcode3 == 0xf8dcf000) {                 // ldr  pc,[r12]
+					PBYTE pbTarget = (PBYTE)(((Opcode2 << 12) & 0xf7000000) |
+						((Opcode2 << 1) & 0x08000000) |
+						((Opcode2 << 16) & 0x00ff0000) |
+						((Opcode >> 4) & 0x0000f700) |
+						((Opcode >> 15) & 0x00000800) |
+						((Opcode >> 0) & 0x000000ff));
+
+					if (detour_is_imported(pbCode, pbTarget)) {
+						PBYTE pbNew = *(PBYTE *)pbTarget;
+						pbNew = DETOURS_PFUNC_TO_PBYTE(pbNew);
+						DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
+						return pbNew;
+					}
 				}
 			}
 		}
 	}
+	else {
+		// read ARM instruction set
+		// Skip over the import jump if there is one.
+		
+		ULONG Opcode = fetch_opcode(pbCode);
+
+		if ((Opcode & 0xe28F0000) == 0xe28F0000) {          // ADR r12, #xxxx //movw r12,#xxxx
+			ULONG Opcode2 = fetch_opcode(pbCode + 4);
+
+			if ((Opcode2 & 0xe28C0000) == 0xe28C0000) {      // ADD r12, r12, #xxxx // movt r12,#xxxx
+				ULONG Opcode3 = fetch_opcode(pbCode + 8);
+				if ((Opcode3 & 0xE5BC0000) == 0xE5BC0000) {                 // ldr  pc,[r12]
+					ULONG tgt = (Opcode2 << 12) & 0x000FFFFF;
+					PBYTE pbTarget = /*(PBYTE)(((Opcode2 << 12) & 0xf7000000) |
+									 ((Opcode2 << 1) & 0x08000000) |
+									 ((Opcode2 << 16) & 0x00ff0000) |
+									 ((Opcode >> 4) & 0x0000f700) |
+									 ((Opcode >> 15) & 0x00000800) |
+									 ((Opcode >> 0) & 0x000000ff)); */
+
+									 //pbTarget = (PBYTE)(*(ULONG*)((pbCode + 8 + tgt + (Opcode3 & 0xFFF))));
+						pbTarget = ((pbCode + 8 + tgt + (Opcode3 & 0xFFF)));
+					if (detour_is_imported(pbCode, pbTarget)) {
+						PBYTE pbNew = *(PBYTE *)pbTarget;
+						pbNew = DETOURS_PFUNC_TO_PBYTE(pbNew);
+						DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
+						return pbNew;
+					}
+				}
+			}
+		}
+	}
+
 	return pbCode;
 }
 
@@ -1671,7 +1707,7 @@ extern "C" void Trampoline_ASM_ARM_T();
 extern "C" void Trampoline_ASM_ARM64();
 #endif
 
-#if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM) || defined(DETOURS_ARM64)
+#if defined(DETOURS_X64) || defined(DETOURS_X86) || defined(DETOURS_ARM64)
 UCHAR* DetourGetTrampolinePtr()
 {
 	// bypass possible Visual Studio debug jump table
@@ -1701,22 +1737,7 @@ UCHAR* DetourGetTrampolinePtr()
 	return Ptr;
 #endif    
 }
-UCHAR* DetourGetArmTrampolinePtr(ULONG isThumb)
-{
-	// bypass possible Visual Studio debug jump table
-	UCHAR* Ptr = NULL;
-#ifdef DETOURS_ARM
-	if (isThumb) {
-		Ptr = (UCHAR*)Trampoline_ASM_ARM_T;
-	}
-	else {
-		Ptr = (UCHAR*)Trampoline_ASM_ARM;
-	}
-#endif
-	Ptr += 5 * 4;
 
-	return Ptr;  
-}
 ULONG GetTrampolineSize()
 {
 	UCHAR*		Ptr = DetourGetTrampolinePtr();
@@ -1753,10 +1774,27 @@ ULONG GetTrampolineSize()
 
 	return 0;
 }
-#ifdef DETOURS_ARM
-ULONG GetTrampolinePtr()
+#endif
+#if defined(DETOURS_ARM) 
+UCHAR* DetourGetArmTrampolinePtr(ULONG isThumb)
 {
-	UCHAR*		Ptr = DetourGetTrampolinePtr();
+	// bypass possible Visual Studio debug jump table
+	UCHAR* Ptr = NULL;
+#ifdef DETOURS_ARM
+	if (isThumb) {
+		Ptr = (UCHAR*)Trampoline_ASM_ARM_T;
+	}
+	else {
+		Ptr = (UCHAR*)Trampoline_ASM_ARM;
+	}
+#endif
+	Ptr += 5 * 4;
+
+	return Ptr;
+}
+ULONG GetTrampolineSize(ULONG isThumb)
+{
+	UCHAR*		Ptr = DetourGetArmTrampolinePtr(isThumb);
 	UCHAR*		BasePtr = Ptr;
 	ULONG       Signature;
 	ULONG       Index;
@@ -1771,8 +1809,8 @@ ULONG GetTrampolinePtr()
 
 		if (Signature == 0x12345678)
 		{
-			___TrampolineSize = (ULONG)(Ptr - BasePtr);
-			return ___TrampolineSize + 1;
+			___TrampolineSize = (ULONG)(align4(Ptr + 4) - BasePtr);
+			return ___TrampolineSize ;
 		}
 
 		Ptr++;
@@ -2327,7 +2365,7 @@ LONG LhSetExclusiveACL(
 
 	return LhSetACL(&Handle->LocalACL, TRUE, InThreadIdList, InThreadCount);
 }
-#endif
+
 LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 {
 	if (pppFailedPointer != NULL) {
@@ -2466,8 +2504,8 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 
 #ifdef DETOURS_ARM
 			UCHAR * trampoline = DetourGetArmTrampolinePtr(o->pTrampoline->IsThumbTarget);
-			const ULONG TrampolineSize = GetTrampolineSize();
-			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
+			const ULONG TrampolineSize = GetTrampolineSize(o->pTrampoline->IsThumbTarget);
+			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
 
 				//error, handle this better
 			}
@@ -2833,9 +2871,10 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 #else // DETOURS_IA64
 #ifdef DETOURS_ARM
 	ULONG IsThumbTarget = (ULONG)pbTarget & 1;
+	PVOID pGlobals = &IsThumbTarget;
 #endif
-	pbTarget = (PBYTE)DetourCodeFromPointer(pbTarget, NULL);
-	pDetour = DetourCodeFromPointer(pDetour, NULL);
+	pbTarget = (PBYTE)DetourCodeFromPointer(pbTarget, &(PVOID &)pGlobals);
+	pDetour = DetourCodeFromPointer(pDetour, &(PVOID &)pGlobals);
 #endif // !DETOURS_IA64
 
 	// Don't follow a jump if its destination is the target function.

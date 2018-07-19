@@ -3545,8 +3545,8 @@ PVOID WINAPI DetourCopyInstruction(_In_opt_ PVOID pDst,
 #define c_PC        15      // The register number for the Program Counter
 #define c_LR        14      // The register number for the Link Register
 #define c_SP        13      // The register number for the Stack Pointer
-#define c_NOP32       0xbf00  // A nop instruction
-#define c_BREAK32     0xdefe  // A nop instruction
+#define c_NOP32       0xe1a00000  // A nop instruction
+#define c_BREAK32     0xe7f001f0  // A nop instruction
 
 class CDetourDis32
 {
