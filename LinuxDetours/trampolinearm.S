@@ -1,7 +1,7 @@
 .text
 .global Trampoline_ASM_ARM_T 
-.code 16     /* Here we say we will use Thumb */
-.align 2     /* Make sure instructions are aligned at 2-byte boundary */
+.code 16
+.align 2
 .syntax unified
 Trampoline_ASM_ARM_T:
 

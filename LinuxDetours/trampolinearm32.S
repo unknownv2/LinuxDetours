@@ -1,8 +1,7 @@
-/* This is a comment */
 .text
-.global Trampoline_ASM_ARM /* 'main' is our entry point and must be global */
-.code 32     /* Here we say we will use Thumb */
-.align 4     /* Make sure instructions are aligned at 2-byte boundary */
+.global Trampoline_ASM_ARM/
+.code 32
+.align 4
 .syntax unified
 Trampoline_ASM_ARM:
 
