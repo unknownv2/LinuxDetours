@@ -1,7 +1,6 @@
-/* This is a comment */
 .text
 .align 5
-.globl Trampoline_ASM_ARM64 /* 'main' is our entry point and must be global */
+.globl Trampoline_ASM_ARM64 
 Trampoline_ASM_ARM64:
 
 NETIntro:        /* .NET Barrier Intro Function */

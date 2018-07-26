@@ -1,5 +1,5 @@
 .text
-.global Trampoline_ASM_ARM/
+.global Trampoline_ASM_ARM
 .code 32
 .align 4
 .syntax unified
