@@ -53,16 +53,16 @@ IsExecutedPtr:  /* Count of times trampoline was executed */
 start:     
         stp     x29, x30, [sp, #-16]!
         mov     x29, sp
-        sub	sp, sp, #(10*8 + 8*16)
-        stp	q0, q1, [sp, #(0*16)]
-        stp	q2, q3, [sp, #(2*16)]
-        stp	q4, q5, [sp, #(4*16)]
-        stp	q6, q7, [sp, #(6*16)]
-        stp	x0, x1, [sp, #(8*16+0*8)]
-        stp	x2, x3, [sp, #(8*16+2*8)]
-        stp	x4, x5, [sp, #(8*16+4*8)]
-        stp	x6, x7, [sp, #(8*16+6*8)]
-        str	x8,     [sp, #(8*16+8*8)]            
+        sub     sp, sp, #(10*8 + 8*16)
+        stp     q0, q1, [sp, #(0*16)]
+        stp     q2, q3, [sp, #(2*16)]
+        stp     q4, q5, [sp, #(4*16)]
+        stp     q6, q7, [sp, #(6*16)]
+        stp     x0, x1, [sp, #(8*16+0*8)]
+        stp     x2, x3, [sp, #(8*16+2*8)]
+        stp     x4, x5, [sp, #(8*16+4*8)]
+        stp     x6, x7, [sp, #(8*16+6*8)]
+        str     x8,     [sp, #(8*16+8*8)]            
 
         ldr     x10, IsExecutedPtr            
 try_inc_lock:       
@@ -111,16 +111,16 @@ CALL_HOOK_HANDLER:
  /* this is where the handler returns... */
 CALL_NET_OUTRO:
         mov     x10, #0
-        sub	sp, sp, #(10*8 + 8*16)
-        stp	q0, q1, [sp, #(0*16)]
-        stp	q2, q3, [sp, #(2*16)]
-        stp	q4, q5, [sp, #(4*16)]
-        stp	q6, q7, [sp, #(6*16)]
-        stp	x0, x1, [sp, #(8*16+0*8)]
-        stp	x2, x3, [sp, #(8*16+2*8)]
-        stp	x4, x5, [sp, #(8*16+4*8)]
-        stp	x6, x7, [sp, #(8*16+6*8)]
-        stp	x8, x10, [sp, #(8*16+8*8)]    /* save return handler */
+        sub     sp, sp, #(10*8 + 8*16)
+        stp     q0, q1, [sp, #(0*16)]
+        stp     q2, q3, [sp, #(2*16)]
+        stp     q4, q5, [sp, #(4*16)]
+        stp     q6, q7, [sp, #(6*16)]
+        stp     x0, x1, [sp, #(8*16+0*8)]
+        stp     x2, x3, [sp, #(8*16+2*8)]
+        stp     x4, x5, [sp, #(8*16+4*8)]
+        stp     x6, x7, [sp, #(8*16+6*8)]
+        stp     x8, x10, [sp, #(8*16+8*8)]    /* save return handler */
 
         add     x1, sp, #(8*16+9*8)      /* Param 2: Address of return address */
         adr     x0, start
@@ -135,35 +135,35 @@ try_dec_lock3:
         stxr    w1, w0, [x9]
         cbnz    w1, try_dec_lock3
         
-        ldp	q0, q1, [sp, #(0*16)]
-        ldp	q2, q3, [sp, #(2*16)]
-        ldp	q4, q5, [sp, #(4*16)]
-        ldp	q6, q7, [sp, #(6*16)]
-        ldp	x0, x1, [sp, #(8*16+0*8)]
-        ldp	x2, x3, [sp, #(8*16+2*8)]
-        ldp	x4, x5, [sp, #(8*16+4*8)]
-        ldp	x6, x7, [sp, #(8*16+6*8)]
-        ldp	x8, x30,  [sp, #(8*16+8*8)]
-        add	sp, sp, #(10*8 + 8*16)
+        ldp     q0, q1, [sp, #(0*16)]
+        ldp     q2, q3, [sp, #(2*16)]
+        ldp     q4, q5, [sp, #(4*16)]
+        ldp     q6, q7, [sp, #(6*16)]
+        ldp     x0, x1, [sp, #(8*16+0*8)]
+        ldp     x2, x3, [sp, #(8*16+2*8)]
+        ldp     x4, x5, [sp, #(8*16+4*8)]
+        ldp     x6, x7, [sp, #(8*16+6*8)]
+        ldp     x8, x30,  [sp, #(8*16+8*8)]
+        add     sp, sp, #(10*8 + 8*16)
 
 /* finally return to saved return address - the caller of this trampoline...  */       
         ret
 
 TRAMPOLINE_EXIT:
-        ldp	q0, q1, [sp, #(0*16)]
-        ldp	q2, q3, [sp, #(2*16)]
-        ldp	q4, q5, [sp, #(4*16)]
-        ldp	q6, q7, [sp, #(6*16)]
-        ldp	x0, x1, [sp, #(8*16+0*8)]
-        ldp	x2, x3, [sp, #(8*16+2*8)]
-        ldp	x4, x5, [sp, #(8*16+4*8)]
-        ldp	x6, x7, [sp, #(8*16+6*8)]
-        ldr	x8,     [sp, #(8*16+8*8)]
-        mov	sp, x29
-        ldp	x29, x30, [sp], #16
+        ldp     q0, q1, [sp, #(0*16)]
+        ldp     q2, q3, [sp, #(2*16)]
+        ldp     q4, q5, [sp, #(4*16)]
+        ldp     q6, q7, [sp, #(6*16)]
+        ldp     x0, x1, [sp, #(8*16+0*8)]
+        ldp     x2, x3, [sp, #(8*16+2*8)]
+        ldp     x4, x5, [sp, #(8*16+4*8)]
+        ldp     x6, x7, [sp, #(8*16+6*8)]
+        ldr     x8,     [sp, #(8*16+8*8)]
+        mov     sp, x29
+        ldp     x29, x30, [sp], #16
         br      x10
 /* outro signature, to automatically determine code size   */     
-        .byte     0x78
-        .byte     0x56
-        .byte     0x34
-        .byte     0x12  
+        .byte   0x78
+        .byte   0x56
+        .byte   0x34
+        .byte   0x12  
