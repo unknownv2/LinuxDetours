@@ -2344,11 +2344,10 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
 					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
 			}
-			//*(PBYTE)&o->pTrampoline->rbTrampolineCode = 0;
+
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
-			//const ULONG trampolinePtrCount = 6;
+
 			PBYTE trampolineStart = align4(trampoline);
-			//memcpy(endOfTramp, trampolineStart, TrampolineSize + trampolinePtrCount * sizeof(PVOID));
 			memcpy(endOfTramp, trampolineStart, TrampolineSize);
 
 			o->pTrampoline->HookIntro = (PVOID)BarrierIntro;
@@ -2366,13 +2365,6 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 				*o->ppbPointer = (o->pTrampoline->rbCode);
 			}
 			o->pTrampoline->IsExecutedPtr = new int();
-			// relocate relative addresses the trampoline uses the above function pointers 
-			/*
-			for (int x = 0; x < trampolinePtrCount; x++) {
-				*(INT*)((endOfTramp + TrampolineSize) + (x * sizeof(PVOID))) -= (INT)trampolineStart;
-				*(INT*)((endOfTramp + TrampolineSize) + (x * sizeof(PVOID))) += (INT)endOfTramp;
-			}*/
-
 			PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, (PBYTE)o->pTrampoline->Trampoline);
 			// PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, o->pTrampoline->pbDetour);
 			pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
