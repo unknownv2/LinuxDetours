@@ -64,63 +64,54 @@ start:
         stp	x6, x7, [sp, #(8*16+6*8)]
         str	x8,     [sp, #(8*16+8*8)]            
 
-        LDR     x10, IsExecutedPtr
-        MOV     X1, #0x0               
+        ldr     x10, IsExecutedPtr            
 try_inc_lock:       
-        ldxr    x0, [x10]
-        ADDS    x0, x0, #1
-        stxr    w1, x0, [x10]
-        CMP     w1, #0
-        BNE     try_inc_lock
-        LDR     x1, NewProc
-        cmp     X2, #0
-        BNE     CALL_NET_ENTRY    
+        ldxr    w0, [x10]
+        add     w0, w0, #1
+        stxr    w1, w0, [x10]
+        cbnz    w1, try_inc_lock
+        ldr     x1, NewProc
+        cbnz    x1, CALL_NET_ENTRY
 /* call original method  */    
-try_dec_lock :       
-        ldxr    x0, [x10]
-        SUBS    x0, x0, #1
-        stxr    w1, x0, [x10]
-        CMP     x1, #0
-        BNE     try_dec_lock
-        LDR     x10, OldProc
-        B       TRAMPOLINE_EXIT        
+try_dec_lock:       
+        ldxr    w0, [x10]
+        add     w0, w0, #-1
+        stxr    w1, w0, [x10]
+        cbnz    x1, try_dec_lock
+        ldr     x10, OldProc
+        b       TRAMPOLINE_EXIT        
 /* call hook handler or original method... */
 CALL_NET_ENTRY:
 
-/* call NET intro */
-
-        ADR     x0, start
-        ADDS    x2, sp, #(10*8 + 8*16) + 8 /* original sp (address of return address)*/
-        LDR     x1, [sp, #(10*8 + 8*16) + 8] /* return address (value stored in original sp) */
-        LDR     x10, NETIntro
-        BLR     x10 /* Hook->NETIntro(Hook, RetAddr, InitialSP)*/
+        adr     x0, start /* call NET intro */
+        add     x2, sp, #(10*8 + 8*16) + 8 /* original sp (address of return address)*/
+        ldr     x1, [sp, #(10*8 + 8*16) + 8] /* return address (value stored in original sp) */
+        ldr     x10, NETIntro  
+        blr     x10 /* Hook->NETIntro(Hook, RetAddr, InitialSP)*/
 /* should call original method?      */        
-        CMP     x0, #0
-        BNE     CALL_HOOK_HANDLER
+        cbnz    x0, CALL_HOOK_HANDLER
 
 /* call original method */
-        LDR     x10, IsExecutedPtr
+        ldr     x10, IsExecutedPtr
 try_dec_lock2:        
-        ldxr    x0, [x10]
-        SUBS    x0, x0, #1
-        stxr    w1, x0, [x10]
-        CMP     w1, #0
-        BNE     try_dec_lock2
+        ldxr    w0, [x10]
+        add     w0, w0, #-1
+        stxr    w1, w0, [x10]
+        cbnz    w1, try_dec_lock2
 
-        LDR     x10, OldProc
-        B       TRAMPOLINE_EXIT
+        ldr     x10, OldProc
+        b       TRAMPOLINE_EXIT
 CALL_HOOK_HANDLER:
 
 /* call hook handler        */
-        LDR     x10, NewProc
-        #LDR     x4, =CALL_NET_OUTRO  /*adjust return address */
-        ADR     x4, CALL_NET_OUTRO
-        STR     x4, [sp, #(10*8 + 8*16) + 8] /* store outro return to stack after hook handler is called     */    
-        B       TRAMPOLINE_EXIT
+        ldr     x10, NewProc
+        adr     x4, CALL_NET_OUTRO /*adjust return address */
+        str     x4, [sp, #(10*8 + 8*16) + 8] /* store outro return to stack after hook handler is called     */    
+        b       TRAMPOLINE_EXIT
  /* this is where the handler returns... */
 CALL_NET_OUTRO:
-        MOV     x10, #0
-         sub	sp, sp, #(10*8 + 8*16)
+        mov     x10, #0
+        sub	sp, sp, #(10*8 + 8*16)
         stp	q0, q1, [sp, #(0*16)]
         stp	q2, q3, [sp, #(2*16)]
         stp	q4, q5, [sp, #(4*16)]
@@ -131,19 +122,19 @@ CALL_NET_OUTRO:
         stp	x6, x7, [sp, #(8*16+6*8)]
         stp	x8, x10, [sp, #(8*16+8*8)]    /* save return handler */
 
-        ADD     x1, sp, #(8*16+9*8)      /* Param 2: Address of return address */
-        ADR     x0, start
+        add     x1, sp, #(8*16+9*8)      /* Param 2: Address of return address */
+        adr     x0, start
         
-        LDR     x9, NETOutro
-        BLR     x9       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/
+        ldr     x9, NETOutro
+        blr     x9       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/
 
-        LDR     x9, IsExecutedPtr 
+        ldr     x9, IsExecutedPtr 
 try_dec_lock3:        
-        ldxr    x0, [x9]
-        SUBS    x0, x0, #1
-        stxr    w1, x0, [x9]
-        CMP     w1, #0
-        BNE     try_dec_lock3
+        ldxr    w0, [x9]
+        add     w0, w0, #-1
+        stxr    w1, w0, [x9]
+        cbnz    w1, try_dec_lock3
+        
         ldp	q0, q1, [sp, #(0*16)]
         ldp	q2, q3, [sp, #(2*16)]
         ldp	q4, q5, [sp, #(4*16)]
@@ -156,7 +147,7 @@ try_dec_lock3:
         add	sp, sp, #(10*8 + 8*16)
 
 /* finally return to saved return address - the caller of this trampoline...  */       
-        RET
+        ret
 
 TRAMPOLINE_EXIT:
         ldp	q0, q1, [sp, #(0*16)]
@@ -170,7 +161,7 @@ TRAMPOLINE_EXIT:
         ldr	x8,     [sp, #(8*16+8*8)]
         mov	sp, x29
         ldp	x29, x30, [sp], #16
-        BR      x10
+        br      x10
 /* outro signature, to automatically determine code size   */     
         .byte     0x78
         .byte     0x56
