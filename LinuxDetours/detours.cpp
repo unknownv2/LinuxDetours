@@ -2155,7 +2155,7 @@ LONG DetourExport LhInstallHook(
 		DetourSetCallbackForLocalHook(pTrampoline, InCallback);
 
 		error = DetourTransactionCommit();
-		if (!error && OutHandle != NULL) {
+		if (OutHandle != NULL && !error) {
 			TRACED_HOOK_HANDLE handle = DetourGetHookHandleForFunction(pTrampoline);
 			if (handle != NULL) {
 				OutHandle->Link = handle->Link;
