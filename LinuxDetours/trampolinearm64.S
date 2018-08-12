@@ -120,19 +120,19 @@ CALL_NET_OUTRO:
         stp     x2, x3, [sp, #(8*16+2*8)]
         stp     x4, x5, [sp, #(8*16+4*8)]
         stp     x6, x7, [sp, #(8*16+6*8)]
-        stp     x8, x10, [sp, #(8*16+8*8)]    /* save return handler */
+        stp     x8, x10,[sp, #(8*16+8*8)]    /* save return handler */
 
         add     x1, sp, #(8*16+9*8)      /* Param 2: Address of return address */
         adr     x0, start
         
-        ldr     x9, NETOutro
-        blr     x9       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/
+        ldr     x10, NETOutro
+        blr     x10       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/
 
-        ldr     x9, IsExecutedPtr 
+        ldr     x10, IsExecutedPtr 
 try_dec_lock3:        
-        ldxr    w0, [x9]
+        ldxr    w0, [x10]
         add     w0, w0, #-1
-        stxr    w1, w0, [x9]
+        stxr    w1, w0, [x10]
         cbnz    w1, try_dec_lock3
         
         ldp     q0, q1, [sp, #(0*16)]
@@ -143,7 +143,7 @@ try_dec_lock3:
         ldp     x2, x3, [sp, #(8*16+2*8)]
         ldp     x4, x5, [sp, #(8*16+4*8)]
         ldp     x6, x7, [sp, #(8*16+6*8)]
-        ldp     x8, x30,  [sp, #(8*16+8*8)]
+        ldp     x8, x30,[sp, #(8*16+8*8)]
         add     sp, sp, #(10*8 + 8*16)
 
 /* finally return to saved return address - the caller of this trampoline...  */       
