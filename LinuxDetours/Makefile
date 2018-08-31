@@ -15,7 +15,7 @@ else
 		$(MAKE) linux_x64
     else ifneq (,$(findstring arm,$(UNAME_M)))
 		$(MAKE) linux_arm
-    else if ($(UNAME_M),aarch64)
+    else
 		$(MAKE) linux_arm64
     endif
 endif
