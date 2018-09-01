@@ -1,7 +1,6 @@
 #include <cstdio>
 #include "detours.h"
 
-
 static unsigned int(WINAPI * TrueSleepEx)(unsigned int seconds) = sleep;
 
 unsigned int WINAPI TimedSleepEx(unsigned int seconds)

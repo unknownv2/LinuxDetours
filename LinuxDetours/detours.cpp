@@ -3213,5 +3213,17 @@ BOOL WINAPI DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
 	//return DetourVirtualProtectSameExecuteEx(GetCurrentProcess(),
 	//                                       pAddress, nSize, dwNewProtect, pdwOldProtect);
 }
+void DllMain(void) __attribute__((constructor));
 
+void DllMain()
+{
+	LhBarrierProcessAttach();
+	LhCriticalInitialize();
+}
+__attribute__((destructor))
+void ExitFunc()
+{
+	LhBarrierProcessDetach();
+	LhCriticalFinalize();
+}
 //  End of File
