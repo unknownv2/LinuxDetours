@@ -5,7 +5,7 @@ CXX = clang++
 CXX_FLAGS =  -Wall -Wno-null-conversion -std=c++11 -g -O3 -fno-omit-frame-pointer -fPIC
 CXX_DEFINES = -lpthread -ldl
 
-.PHONY: x86_64 arm arm64
+.PHONY: macos_x64 linux_arm64 linux_arm64 linux_x64
 
 all:
 ifeq ($(UNAME),Darwin)
