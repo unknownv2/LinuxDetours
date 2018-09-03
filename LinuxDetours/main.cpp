@@ -10,7 +10,7 @@ unsigned int WINAPI TimedSleepEx(unsigned int seconds)
 
 	return ret;
 }
-__attribute__((target("thumb-mode"))) unsigned int WINAPI TestDetourB(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
+unsigned int WINAPI TestDetourB(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
 	return seconds + 1;
 }
@@ -29,10 +29,11 @@ extern "C" {
 	//extern void(*trampoline_template_thumb)();
 	//extern void(*trampoline_template_arm)();
 	extern void* trampoline_data_thumb;
+#define trampoline_template_thumb trampoline_data_arm
+
 #endif
 }
 
-#define trampoline_template_thumb trampoline_data_arm
 #if defined (_ARM64_)
 __attribute__((naked)) void trampoline_template_arm64()
 {
@@ -166,7 +167,7 @@ __attribute__((naked)) void trampoline_template_arm64()
 		
 		"ret"); /* Basic assembler statements are supported. */
 }
-#elif defined(_ARM32_)
+#elif defined(_ARM32_1)
 __attribute__((naked))
 void trampoline_template_arm() {
 	// save registers we clobber (lr, ip) and this particular hook's chained function
@@ -208,10 +209,11 @@ void trampoline_template_arm() {
 	);
 }
 #else
-void trampoline_template_arm() {
+void trampoline_template_arm_test() {
 }
 #endif
-void* trampoline_template(void* chained) {
+#if defined(_ARM32_1)
+void* trampoline_template_test(void* chained) {
 	uintptr_t ret = 0;
 #if defined(_ARM64_)
 	ret = reinterpret_cast<uintptr_t>(&trampoline_template_arm64) + (5 * sizeof(PVOID));
@@ -227,7 +229,7 @@ void* trampoline_template(void* chained) {
 	ret &= ~1;
 	return reinterpret_cast<void*>(ret);
 }
-void* trampoline_data(void* chained) {
+void* trampoline_data_test(void* chained) {
 #if defined(_ARM64_)
 	return (&trampoline_data_arm_64);
 #elif defined(_ARM32_)
@@ -241,7 +243,16 @@ void* trampoline_data(void* chained) {
 
 	return nullptr;
 }
+void test_trampoline()
+{
+	void* chained = (void*)2;
+	uint32_t code_size_ = reinterpret_cast<uintptr_t>(trampoline_data_test(chained)) -
+		reinterpret_cast<uintptr_t>(trampoline_template_test(chained));
 
+	printf("Trampoline size is %llx\n", code_size_);
+
+}
+#endif
 #if defined(_ARM64)
 
 long var;
@@ -329,15 +340,7 @@ int rotateLeft(int num, int by)
 {
 	return (num << by) | (num >> (BITS - by));
 }
-void test_trampoline()
-{
-	void* chained = (void*)2;
-	uint32_t code_size_ = reinterpret_cast<uintptr_t>(trampoline_data(chained)) -
-		reinterpret_cast<uintptr_t>(trampoline_template(chained));
 
-	printf("Trampoline size is %llx\n", code_size_);
-
-}
 
 /*#include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"

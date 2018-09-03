@@ -560,10 +560,9 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 
 #ifdef DETOURS_ARM
 #if defined(DETOURS_ARM32)
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x10C;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x110;
 #elif defined(DETOURS_ARM)
 const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x110;
-
 #endif
 
 
@@ -1611,7 +1610,7 @@ ULONG GetTrampolineSize()
 #endif
 #if defined(DETOURS_ARM) 
 
-__attribute__((naked))
+__attribute__((naked)) 
 __attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
 	// save registers we clobber (lr, ip) and this particular hook's chained function
 	// onto a TLS stack so that we can easily look up who CALL_PREV should jump to, and
@@ -1644,20 +1643,21 @@ __attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
 		"        .byte 0;"
 		"        .byte 0;"
 		"        .byte 0;"
-	".global start_of_dispatcher_s2;"
-	"start_of_dispatcher_s2 :"
-	".global th_to_arm1;"
 
+	".global trampoline_template_thumb;"
+	"trampoline_template_thumb :"
+#if not defined(DETOURS_ARM32)
 	".thumb_func;"
 	//".code 16;"
-	"th_to_arm1:"
 	"bx pc;"
 	"mov r8, r8;"
-	"mov r8, r8;"
+#endif
+	//"mov r8, r8;"
 	//".endfunc;"
-		".global   dispatcher_trampoline2;"
+	".global trampoline_template_arm;"
+	"trampoline_template_arm :"
    ".code 32;"
-	"dispatcher_trampoline2:"
+
 	"start:"
 		//"mov r0, #0;"
 		//"mov r0, #1;"
@@ -1669,11 +1669,30 @@ __attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
 		"vpush   {d0-d7};"
 		"ldr     r5, IsExecutedPtr;"
 		"dmb     ish;"
+	"try_inc_lock:;"
+		"ldrex   r0, [r5];"
+		"add     r0, r0, #1;"
+		"strex   r1, r0, [r5];"
+		"cmp     r1, #0;"
+		"bne     try_inc_lock;"
+		"dmb     ish;"
+		"ldr     r2, NewProc;"
+		"cmpeq   r2, #0;"
+		"bne     CALL_NET_ENTRY;"
+		"/* call original method  */ ;"
+		"dmb     ish;"
+	"try_dec_lock:;"
+		"ldrex   r0, [r5];"
+		"add     r0, r0, #-1;"
+		"strex   r1, r0, [r5];"
+		"cmp     r1, #0;"
+		"bne     try_dec_lock;"
+		"dmb     ish;"
 		"ldr   r5, OldProc;"
 		"b     TRAMPOLINE_EXIT;"
 
 		"/* call hook handler or original method... */;"
-		"CALL_NET_ENTRY:;"
+	"CALL_NET_ENTRY:;"
 
 		"adr     r0, start /* Hook handle (only a position hint) */        ;"
 		"add     r2, sp, #0x6c /* original sp (address of return address)*/;"
@@ -1688,7 +1707,7 @@ __attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
 		"/* call original method */  ;"
 		"ldr     r5, IsExecutedPtr;"
 		"dmb     ish;"
-		"try_dec_lock2:;"
+	"try_dec_lock2:;"
 		"ldrex   r0, [r5];"
 		"add     r0, r0, #-1;"
 		"strex   r1, r0, [r5];"
@@ -1699,14 +1718,14 @@ __attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
 		"ldr     r5, OldProc;"
 		"b       TRAMPOLINE_EXIT;"
 
-		"CALL_HOOK_HANDLER:;"
+	"CALL_HOOK_HANDLER:;"
 		"/* call hook handler        */; "
 		"ldr     r5, NewProc;"
 		"adr     r4, CALL_NET_OUTRO;"
 		"str     r4, [sp, #0x6c] /* store outro return to stack after hook handler is called     */    ;"
 		"b       TRAMPOLINE_EXIT;"
 		" /* this is where the handler returns... */;"
-		"CALL_NET_OUTRO:;"
+	"CALL_NET_OUTRO:;"
 		"mov     r5, #0;"
 		"push    {r0, r1, r2, r3, r4, r5} /* save return handler */;"
 		"add     r1, sp, #5*4;"
@@ -1716,7 +1735,7 @@ __attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
 		"blx     r5       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/;"
 		"ldr     r5, IsExecutedPtr;"
 		"dmb     ish;"
-		"try_dec_lock3:;"
+	"try_dec_lock3:;"
 		"ldrex   r0, [r5];"
 		"add     r0, r0, #-1;"
 		"strex   r1, r0, [r5];"
@@ -1732,32 +1751,87 @@ __attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
 		"pop     {r5, r6, r7, r8, r9, r10};"
 		"pop     {r0, r1, r2, r3, r4, lr};"
 		"bx      r12 ; mov     pc, r12;"
-	".global trampoline_data_end_marker;"
-		"trampoline_data_end_marker :"
+	".global trampoline_data_arm;"
+		"trampoline_data_arm :"
+	".global trampoline_data_thumb;"
+		"trampoline_data_thumb :"
 		".word 0x12345678;"
 	);
 }
+extern "C" {
+
+#if defined(_ARM64_)
+	extern void* trampoline_data_arm_64;
+#elif defined(_ARM32_) || defined(_ARM_)
+	extern void(*trampoline_template_thumb)();
+	extern void(*trampoline_template_arm)();
+	extern void* trampoline_data_thumb;
+	extern void* trampoline_data_arm;
+
+#endif
+}
+void* trampoline_template(void* chained) {
+	uintptr_t ret = 0;
+#if defined(_ARM64_)
+	ret = reinterpret_cast<uintptr_t>(&trampoline_template_arm64) + (5 * sizeof(PVOID));
+#elif defined(_ARM32_) || defined(_ARM_)
+	if (reinterpret_cast<uintptr_t>(chained) & 0x1) {
+		ret = reinterpret_cast<uintptr_t>(&trampoline_template_thumb);
+	}
+	else {
+		ret = reinterpret_cast<uintptr_t>(&trampoline_template_arm);
+	}
+#endif
+	asm("" : "=rm"(ret)); // force compiler to abandon its assumption that ret is aligned
+	ret &= ~1;
+	return reinterpret_cast<void*>(ret);
+}
+void* trampoline_data(void* chained) {
+#if defined(_ARM64_)
+	return (&trampoline_data_arm_64);
+#elif defined(_ARM32_) || defined(_ARM_)
+	if (reinterpret_cast<uintptr_t>(chained) & 0x1) {
+		return &trampoline_data_thumb;
+	}
+	else {
+		return &trampoline_data_arm;
+	}
+#endif
+
+	return nullptr;
+}
+
 UCHAR* DetourGetArmTrampolinePtr(ULONG isThumb)
 {
 	// bypass possible Visual Studio debug jump table
 	UCHAR* Ptr = NULL;
 #ifdef DETOURS_ARM
 	if (isThumb) {
-		Ptr = (UCHAR*)&trampoline_template_arm1;
+		Ptr = (UCHAR*)trampoline_template((PVOID)isThumb);
+			//(UCHAR*)&trampoline_template_arm1;
 
 			//(UCHAR*)Trampoline_ASM_ARM_T;
 	}
 	else {
-		Ptr = (UCHAR*)&trampoline_template_arm1;
+		Ptr = (UCHAR*)trampoline_template((PVOID)isThumb);
+			//(UCHAR*)&trampoline_template_arm1;
 			//Trampoline_ASM_ARM;
 	}
 #endif
-	Ptr += 5 * 4;
-	___TrampolineSize = 0x10C;
+	//Ptr += 5 * 4;
+	//___TrampolineSize = 0x10C;
 	return Ptr;
 }
 ULONG GetTrampolineSize(ULONG isThumb)
 {
+	if (___TrampolineSize != 0)
+		return ___TrampolineSize;
+	uint32_t code_size_ = reinterpret_cast<uintptr_t>(trampoline_data((PVOID)isThumb)) -
+		reinterpret_cast<uintptr_t>(trampoline_template((PVOID)isThumb));
+
+	___TrampolineSize = code_size_;
+	return ___TrampolineSize;
+	/*
 	UCHAR*		Ptr = DetourGetArmTrampolinePtr(isThumb);
 	UCHAR*		BasePtr = Ptr;
 	ULONG       Signature;
@@ -1767,7 +1841,7 @@ ULONG GetTrampolineSize(ULONG isThumb)
 		return ___TrampolineSize;
 
 	// search for signature
-	for (Index = 0; Index < 2000 /* some always large enough value*/; Index++)
+	for (Index = 0; Index < 2000 ; Index++)
 	{
 		Signature = *((ULONG*)Ptr);
 
@@ -1780,7 +1854,7 @@ ULONG GetTrampolineSize(ULONG isThumb)
 		Ptr++;
 	}
 
-	return 0;
+	return 0;*/
 }
 #endif
 
@@ -2471,7 +2545,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			const ULONG TrampolineSize = GetTrampolineSize(o->pTrampoline->IsThumbTarget);
 			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
 				//error, handle this better
-				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
+				DETOUR_TRACE(("detours: TrampolineSize >= DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
 					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
 			}
 
