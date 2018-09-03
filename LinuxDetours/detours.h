@@ -693,7 +693,7 @@ BOOL WINAPI DetourSetCodeModule##x(_In_ HMODULE hModule,                \
 		//
 
 		_Success_(return != FALSE)
-		BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  HANDLE hProcess,
+		BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
 			_In_  PVOID pAddress,
 			_In_  SIZE_T nSize,
 			_In_  DWORD dwNewProtect,

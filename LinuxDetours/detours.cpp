@@ -771,7 +771,7 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 			if ((Opcode2 & 0xe28C0000) == 0xe28C0000) {      // ADD r12, r12, #xxxx // movt r12,#xxxx
 				ULONG Opcode3 = fetch_opcode(pbCode + 8);
 				if ((Opcode3 & 0xE5BC0000) == 0xE5BC0000) {                 // ldr  pc,[r12]
-					ULONG tgt = (Opcode2 << 12) & 0x000FFFFF;
+					ULONG target = (Opcode2 << 12) & 0x000FFFFF;
 					PBYTE pbTarget = /*(PBYTE)(((Opcode2 << 12) & 0xf7000000) |
 									 ((Opcode2 << 1) & 0x08000000) |
 									 ((Opcode2 << 16) & 0x00ff0000) |
@@ -780,7 +780,7 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 									 ((Opcode >> 0) & 0x000000ff)); */
 
 									 //pbTarget = (PBYTE)(*(ULONG*)((pbCode + 8 + tgt + (Opcode3 & 0xFFF))));
-						pbTarget = ((pbCode + 8 + tgt + (Opcode3 & 0xFFF)));
+						 ((pbCode + 8 + target + (Opcode3 & 0xFFF)));
 					if (detour_is_imported(pbCode, pbTarget)) {
 						PBYTE pbNew = *(PBYTE *)pbTarget;
 						pbNew = DETOURS_PFUNC_TO_PBYTE(pbNew);
@@ -847,8 +847,30 @@ const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x158;
 
 struct _DETOUR_TRAMPOLINE
 {
+	// Src: https://github.com/Microsoft/Detours/commit/c5cb6c3af5a6871df47131d6cc29d4262a412623
 	// An ARM64 instruction is 4 bytes long.
-	BYTE            rbCode[64];     // target code + jmp to pbRemain
+	// The overwrite is always 2 instructions plus a literal, so 16 bytes, 4 instructions.
+	//
+	// Copied instructions can expand.
+	//
+	// The scheme using MovImmediate can cause an instruction
+	// to grow as much as 6 times.
+	// That would be Bcc or Tbz with a large address space:
+	//   4 instructions to form immediate
+	//   inverted tbz/bcc
+	//   br
+	//
+	// An expansion of 4 is not uncommon -- bl/blr and small address space:
+	//   3 instructions to form immediate
+	//   br or brl
+	//
+	// A theoretical maximum for rbCode is thefore 4*4*6 + 16 = 112 (another 16 for jmp to pbRemain).
+	//
+	// With literals, the maximum expansion is 5, including the literals: 4*4*5 + 16 = 96.
+	//
+	// The number is rounded up to 128. m_rbScratchDst should match this.
+	//
+	BYTE            rbCode[128];     // target code + jmp to pbRemain
 	BYTE            cbCode;         // size of moved target code.
 	BYTE            cbCodeBreak[3]; // padding to make debugging easier.
 	BYTE            rbRestore[24];  // original target code.
@@ -975,7 +997,7 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 					Rd is hardcoded as 0x10 above.
 					Immediate is 21 signed bits split into 2 bits and 19 bits, and is scaled by 4K.
 					*/
-						UINT64 const pageLow2 = (Opcode >> 29) & 3;
+					UINT64 const pageLow2 = (Opcode >> 29) & 3;
 					UINT64 const pageHigh19 = (Opcode >> 5) & ~(~(INT64)0 << 19);
 					INT64 const page = detour_sign_extend((pageHigh19 << 2) | pageLow2, 21) << 12;
 					
@@ -993,9 +1015,9 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 					That is, two low 5 bit fields are registers, hardcoded as 0x10 and 0x10 << 5 above,
 					then unsigned size-unscaled (8) 12-bit offset, then opcode bits 0xF94.
 					*/
-						UINT64 const offset = ((Opcode2 >> 10) & ~(~(INT64)0 << 12)) << 3;
+					UINT64 const offset = ((Opcode2 >> 10) & ~(~(INT64)0 << 12)) << 3;
 					
-						PBYTE const pbTarget = (PBYTE)((ULONG64)pbCode & 0xfffffffffffff000ULL) + page + offset;
+					PBYTE const pbTarget = (PBYTE)((ULONG64)pbCode & 0xfffffffffffff000ULL) + page + offset;
 					if (detour_is_imported(pbCode, pbTarget)) {
 						PBYTE pbNew = *(PBYTE *)pbTarget;
 						DETOUR_TRACE(("%p->%p: skipped over import table.\n", pbCode, pbNew));
@@ -3249,7 +3271,7 @@ static DWORD DetourPageProtectAdjustExecute(_In_  DWORD dwOldProtect,
 }
 
 _Success_(return != FALSE)
-BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  HANDLE hProcess,
+BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
 	_In_  PVOID pAddress,
 	_In_  SIZE_T nSize,
 	_In_  DWORD dwNewProtect,
@@ -3282,9 +3304,8 @@ BOOL WINAPI DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
 	_In_  DWORD dwNewProtect,
 	_Out_ PDWORD pdwOldProtect)
 {
-	return TRUE;
-	//return DetourVirtualProtectSameExecuteEx(GetCurrentProcess(),
-	//                                       pAddress, nSize, dwNewProtect, pdwOldProtect);
+	return DetourVirtualProtectSameExecuteEx(getpid(),
+	                                       pAddress, nSize, dwNewProtect, pdwOldProtect);
 }
 void DllMain(void) __attribute__((constructor));
 
