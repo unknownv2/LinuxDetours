@@ -192,8 +192,8 @@
     <RemoteLdToolExe>clang++</RemoteLdToolExe>
     <RemoteCCompileToolExe>clang++</RemoteCCompileToolExe>
     <RemoteCppCompileToolExe>clang++</RemoteCppCompileToolExe>
-    <IncludePath>C:\Users\Thierry\Documents\Visual Studio 2017\Projects\LinuxDetours\LinuxDetours\include;/usr/local/include;$(IncludePath)</IncludePath>
-    <LibraryPath>/usr/local/lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Arm|ARM64'">
     <RemoteLdToolExe>clang++</RemoteLdToolExe>
@@ -228,16 +228,13 @@
     <ClCompile Include="disasm.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="plthook_elf.c" />
+    <ClCompile Include="trampoline_arm.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="detours.h" />
     <ClInclude Include="limits.h" />
     <ClInclude Include="plthook.h" />
     <ClInclude Include="types.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="trampolinearm.o" />
-    <Object Include="trampolinearm32.o" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -295,7 +292,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_ARM_;_ARM32_</PreprocessorDefinitions>
-      <AdditionalOptions>-v</AdditionalOptions>
+      <AdditionalOptions>-v  -mcpu=cortex-a5 -interwork</AdditionalOptions>
     </ClCompile>
     <PreBuildEvent>
       <Command>
@@ -357,7 +354,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_ARM_</PreprocessorDefinitions>
-      <AdditionalOptions>-mthumb -mcpu=cortex-a15 -interwork%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-mthumb -mcpu=cortex-a5 -interwork%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Arm-Thumb|ARM64'">
