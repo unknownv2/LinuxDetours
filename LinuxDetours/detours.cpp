@@ -315,7 +315,7 @@ inline ULONG detour_is_code_filler(PBYTE pbCode)
 //
 #ifdef DETOURS_X64
 
-const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x140;
+const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 0x150;
 
 struct _DETOUR_TRAMPOLINE
 {
@@ -1525,7 +1525,11 @@ static ULONG ___TrampolineSize = 0;
 
 
 #ifdef DETOURS_X64
-extern "C" void Trampoline_ASM_x64();
+extern "C" {
+	extern void Trampoline_ASM_x64();
+	extern void* trampoline_data_x64;
+	extern void(*trampoline_template_x64)();
+}
 #endif
 
 #ifdef DETOURS_X86
@@ -1543,11 +1547,30 @@ extern "C" void Trampoline_ASM_x86();
 
 #if defined(DETOURS_X64) || defined(DETOURS_X86)
 //|| defined(DETOURS_ARM64)
+
+void* trampoline_template() {
+
+	uintptr_t ret = 0;
+#if defined(DETOURS_X64)
+	ret = reinterpret_cast<uintptr_t>(&trampoline_template_x64);
+#endif
+	asm("" : "=rm"(ret)); // force compiler to abandon its assumption that ret is aligned
+	//ret &= ~1;
+	return reinterpret_cast<void*>(ret);
+}
+
+void* trampoline_data() {
+#if defined(DETOURS_X64)
+	return (&trampoline_data_x64);
+#endif
+	return nullptr;
+}
 UCHAR* DetourGetTrampolinePtr()
 {
 	// bypass possible Visual Studio debug jump table
 #ifdef DETOURS_X64
-	UCHAR* Ptr = (UCHAR*)Trampoline_ASM_x64;
+	UCHAR* Ptr = (UCHAR*)trampoline_template();
+	//Trampoline_ASM_x64;
 #endif
 
 #ifdef DETOURS_X86
@@ -1567,14 +1590,21 @@ UCHAR* DetourGetTrampolinePtr()
 		Ptr += *((int*)(Ptr + 1)) + 5;
 
 #ifdef DETOURS_X64
-	return Ptr + 5 * 8;
+	return Ptr;// +5 * 8;
 #else
 	return Ptr;
 #endif    
 }
-
 ULONG GetTrampolineSize()
 {
+	if (___TrampolineSize != 0)
+		return ___TrampolineSize;
+	uint32_t code_size_ = reinterpret_cast<uintptr_t>(trampoline_data()) -
+		reinterpret_cast<uintptr_t>(trampoline_template());
+
+	___TrampolineSize = code_size_;
+	return ___TrampolineSize;
+	/*
 	UCHAR*		Ptr = DetourGetTrampolinePtr();
 	UCHAR*		BasePtr = Ptr;
 	ULONG       Signature;
@@ -1584,7 +1614,7 @@ ULONG GetTrampolineSize()
 		return ___TrampolineSize;
 
 	// search for signature
-	for (Index = 0; Index < 2000 /* some always large enough value*/; Index++)
+	for (Index = 0; Index < 2000 ; Index++) // some always large enough value (2000)
 	{
 		Signature = *((ULONG*)Ptr);
 
@@ -1606,8 +1636,9 @@ ULONG GetTrampolineSize()
 
 		Ptr++;
 	}
+	
 
-	return 0;
+	return 0;*/
 }
 #endif
 #if defined(DETOURS_ARM) || defined(DETOURS_ARM64)
@@ -1651,7 +1682,6 @@ void* trampoline_data(void* chained) {
 		return &trampoline_data_arm;
 	}
 #endif
-
 	return nullptr;
 }
 
