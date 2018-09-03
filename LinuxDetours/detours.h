@@ -642,7 +642,10 @@ LONG InterlockedCompareExchange(_Inout_ LONG *ptr, _In_ LONG nval, _In_ LONG ova
 #include <stdio.h>
 #include "limits.h"
 #else
-#define DETOUR_TRACE(x) printf x
+#include <glog/logging.h>
+#include  <cstdarg>
+const char * ___DETOUR_TRACE(const char *format, ...);
+#define DETOUR_TRACE(x) LOG(INFO) << ___DETOUR_TRACE x
 #define DETOUR_BREAK()
 #endif
 #endif

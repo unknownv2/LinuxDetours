@@ -14,6 +14,7 @@
 #define DETOURS_INTERNAL
 
 #include "detours.h"
+//#include <glog/logging.h>
 
 #define NOTHROW
 
@@ -1609,20 +1610,150 @@ ULONG GetTrampolineSize()
 }
 #endif
 #if defined(DETOURS_ARM) 
+
+__attribute__((naked))
+__attribute__((target("no-thumb-mode"))) void trampoline_template_arm1() {
+	// save registers we clobber (lr, ip) and this particular hook's chained function
+	// onto a TLS stack so that we can easily look up who CALL_PREV should jump to, and
+	// clean up after ourselves register-wise, all while ensuring that we don't alter
+	// the actual thread stack at all in order to make sure the hook function sees exactly
+	// the parameters it's supposed to.
+	asm(
+		"NETIntro:        /* .NET Barrier Intro Function */; "
+	"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+	"OldProc:        /* Original Replaced Function */;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+	"NewProc:        /* Detour Function */;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+	"NETOutro:       /* .NET Barrier Outro Function */;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+	"IsExecutedPtr:  /* Count of times trampoline was executed */;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+		"        .byte 0;"
+	".global start_of_dispatcher_s2;"
+	"start_of_dispatcher_s2 :"
+	".global th_to_arm1;"
+
+	".thumb_func;"
+	//".code 16;"
+	"th_to_arm1:"
+	"bx pc;"
+	"mov r8, r8;"
+	"mov r8, r8;"
+	//".endfunc;"
+		".global   dispatcher_trampoline2;"
+   ".code 32;"
+	"dispatcher_trampoline2:"
+	"start:"
+		//"mov r0, #0;"
+		//"mov r0, #1;"
+		//"mov r0, #2;"
+		//"mov r0, #3;"
+		//"mov r0, #4;"
+		"push    {r0, r1, r2, r3, r4, lr};"
+		"push    {r5, r6, r7, r8, r9, r10};"
+		"vpush   {d0-d7};"
+		"ldr     r5, IsExecutedPtr;"
+		"dmb     ish;"
+		"ldr   r5, OldProc;"
+		"b     TRAMPOLINE_EXIT;"
+
+		"/* call hook handler or original method... */;"
+		"CALL_NET_ENTRY:;"
+
+		"adr     r0, start /* Hook handle (only a position hint) */        ;"
+		"add     r2, sp, #0x6c /* original sp (address of return address)*/;"
+		"ldr     r1, [sp, #0x6c] /* return address (value stored in original sp) */;"
+		"ldr     r4, NETIntro /* call NET intro */;"
+		"blx     r4 /* Hook->NETIntro(Hook, RetAddr, InitialSP)*/;"
+
+		"/* should call original method?      */        ;"
+		"cmp     r0, #0;"
+		"bne     CALL_HOOK_HANDLER;"
+
+		"/* call original method */  ;"
+		"ldr     r5, IsExecutedPtr;"
+		"dmb     ish;"
+		"try_dec_lock2:;"
+		"ldrex   r0, [r5];"
+		"add     r0, r0, #-1;"
+		"strex   r1, r0, [r5];"
+		"cmp     r1, #0;"
+		"bne     try_dec_lock2;"
+		"dmb     ish;"
+
+		"ldr     r5, OldProc;"
+		"b       TRAMPOLINE_EXIT;"
+
+		"CALL_HOOK_HANDLER:;"
+		"/* call hook handler        */; "
+		"ldr     r5, NewProc;"
+		"adr     r4, CALL_NET_OUTRO;"
+		"str     r4, [sp, #0x6c] /* store outro return to stack after hook handler is called     */    ;"
+		"b       TRAMPOLINE_EXIT;"
+		" /* this is where the handler returns... */;"
+		"CALL_NET_OUTRO:;"
+		"mov     r5, #0;"
+		"push    {r0, r1, r2, r3, r4, r5} /* save return handler */;"
+		"add     r1, sp, #5*4;"
+		"adr     r0, start /* get address of next Hook struct pointer */;"
+		"/* Param 2: Address of return address */;"
+		"ldr     r5, NETOutro;"
+		"blx     r5       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/;"
+		"ldr     r5, IsExecutedPtr;"
+		"dmb     ish;"
+		"try_dec_lock3:;"
+		"ldrex   r0, [r5];"
+		"add     r0, r0, #-1;"
+		"strex   r1, r0, [r5];"
+		"cmp     r1, #0;"
+		"bne     try_dec_lock3;"
+		"dmb     ish;"
+		"pop     {r0, r1, r2, r3, r4, lr} /* restore return value of user handler... */;"
+		"/* finally return to saved return address - the caller of this trampoline...  */; "
+		"bx      lr;"
+	"TRAMPOLINE_EXIT:;"
+		"mov     r12, r5;"
+		"vpop    {d0-d7};"
+		"pop     {r5, r6, r7, r8, r9, r10};"
+		"pop     {r0, r1, r2, r3, r4, lr};"
+		"bx      r12 ; mov     pc, r12;"
+	".global trampoline_data_end_marker;"
+		"trampoline_data_end_marker :"
+		".word 0x12345678;"
+	);
+}
 UCHAR* DetourGetArmTrampolinePtr(ULONG isThumb)
 {
 	// bypass possible Visual Studio debug jump table
 	UCHAR* Ptr = NULL;
 #ifdef DETOURS_ARM
 	if (isThumb) {
-		Ptr = (UCHAR*)Trampoline_ASM_ARM_T;
+		Ptr = (UCHAR*)&trampoline_template_arm1;
+
+			//(UCHAR*)Trampoline_ASM_ARM_T;
 	}
 	else {
-		Ptr = (UCHAR*)Trampoline_ASM_ARM;
+		Ptr = (UCHAR*)&trampoline_template_arm1;
+			//Trampoline_ASM_ARM;
 	}
 #endif
 	Ptr += 5 * 4;
-
+	___TrampolineSize = 0x10C;
 	return Ptr;
 }
 ULONG GetTrampolineSize(ULONG isThumb)
@@ -2613,7 +2744,19 @@ LONG WINAPI DetourUpdateThread(_In_ pthread_t hThread)
 	*/
 	return NO_ERROR;
 }
+char buffer_print[1024];
+const char* ___DETOUR_TRACE(const char *format, ...)
+{
+	memset(buffer_print, 0, 1024);
+	va_list arg;
+	int done;
 
+	va_start(arg, format);
+	sprintf(buffer_print, format, arg);
+	va_end(arg);
+
+	return buffer_print;
+}
 ///////////////////////////////////////////////////////////// Transacted APIs.
 //
 LONG WINAPI DetourAttach(_Inout_ PVOID *ppPointer,
