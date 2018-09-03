@@ -35,7 +35,7 @@ __attribute__((naked))
 #if not defined(DETOURS_ARM32)
 		".thumb_func;"
 		"bx pc;"
-		"mov r8, r8;"
+		"mov r8, r8;" // padding since pc is set to (current_instruction + 4) in Thumb Mode
 #endif
 		".global trampoline_template_arm;"
 		"trampoline_template_arm :"
@@ -138,7 +138,7 @@ __attribute__((naked))
 }
 #elif defined(DETOURS_ARM64) 
 __attribute__((naked))
-void trampoline_template_arm_func() {
+void trampoline_template_arm_64_func() {
 	asm(
 		"NETIntro:        /* .NET Barrier Intro Function */;"
 		"        .8byte 0;"
