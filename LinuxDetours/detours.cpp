@@ -1439,7 +1439,7 @@ static DetourOperation *    s_pPendingOperations = NULL;
 
 //////////////////////////////////////////////////////////////////////////////
 //
-PVOID WINAPI DetourCodeFromPointer(_In_ PVOID pPointer,
+PVOID DetourCodeFromPointer(_In_ PVOID pPointer,
 	_Out_opt_ PVOID *ppGlobals)
 {
 	return detour_skip_jmp((PBYTE)pPointer, ppGlobals);
@@ -1447,35 +1447,35 @@ PVOID WINAPI DetourCodeFromPointer(_In_ PVOID pPointer,
 
 //////////////////////////////////////////////////////////// Transaction APIs.
 //
-BOOL WINAPI DetourSetIgnoreTooSmall(_In_ BOOL fIgnore)
+BOOL DetourSetIgnoreTooSmall(_In_ BOOL fIgnore)
 {
 	BOOL fPrevious = s_fIgnoreTooSmall;
 	s_fIgnoreTooSmall = fIgnore;
 	return fPrevious;
 }
 
-BOOL WINAPI DetourSetRetainRegions(_In_ BOOL fRetain)
+BOOL DetourSetRetainRegions(_In_ BOOL fRetain)
 {
 	BOOL fPrevious = s_fRetainRegions;
 	s_fRetainRegions = fRetain;
 	return fPrevious;
 }
 
-PVOID WINAPI DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound)
+PVOID DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound)
 {
 	PVOID pPrevious = s_pSystemRegionLowerBound;
 	s_pSystemRegionLowerBound = pSystemRegionLowerBound;
 	return pPrevious;
 }
 
-PVOID WINAPI DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound)
+PVOID DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound)
 {
 	PVOID pPrevious = s_pSystemRegionUpperBound;
 	s_pSystemRegionUpperBound = pSystemRegionUpperBound;
 	return pPrevious;
 }
 
-LONG WINAPI DetourTransactionBegin()
+LONG DetourTransactionBegin()
 {
 	// Only one transaction is allowed at a time.
 	_Benign_race_begin_
@@ -1499,7 +1499,7 @@ LONG WINAPI DetourTransactionBegin()
 	return s_nPendingError;
 }
 
-LONG WINAPI DetourTransactionAbort()
+LONG DetourTransactionAbort()
 {
 	if (s_nPendingThreadId != (LONG)pthread_self()) {
 		return ERROR_INVALID_OPERATION;
@@ -1543,7 +1543,7 @@ LONG WINAPI DetourTransactionAbort()
 	return NO_ERROR;
 }
 
-LONG WINAPI DetourTransactionCommit()
+LONG DetourTransactionCommit()
 {
 	return DetourTransactionCommitEx(NULL);
 }
@@ -1721,7 +1721,7 @@ ULONG GetTrampolineSize(ULONG isThumb)
 }
 #endif
 
-ULONGLONG WINAPI BarrierIntro(DETOUR_TRAMPOLINE* InHandle, void* InRetAddr, void** InAddrOfRetAddr)
+ULONGLONG BarrierIntro(DETOUR_TRAMPOLINE* InHandle, void* InRetAddr, void** InAddrOfRetAddr)
 {
 	/*
 	Description:
@@ -1848,7 +1848,7 @@ DONT_INTERCEPT:
 	
 	return FALSE;
 }
-void* WINAPI BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
+void* BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
 {
 	DETOUR_TRACE(("Barrier Outro InHandle=%p, InAddrOfRetAddr=%p \n",
 		InHandle, InAddrOfRetAddr));
@@ -1896,18 +1896,18 @@ void* WINAPI BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
 }
 
 static TRACED_HOOK_HANDLE           LastOutHandle = NULL;
-void* WINAPI DetourGetLastHandle()
+void* DetourGetLastHandle()
 {
 	return LastOutHandle;
 }
-TRACED_HOOK_HANDLE WINAPI DetourGetHookHandleForFunction(PDETOUR_TRAMPOLINE pTrampoline)
+TRACED_HOOK_HANDLE DetourGetHookHandleForFunction(PDETOUR_TRAMPOLINE pTrampoline)
 {
 	if (pTrampoline != NULL) {
 		return pTrampoline->OutHandle;
 	}
 	return NULL;
 }
-LONG WINAPI DetourSetCallbackForLocalHook(PDETOUR_TRAMPOLINE pTrampoline, PVOID pCallback)
+LONG DetourSetCallbackForLocalHook(PDETOUR_TRAMPOLINE pTrampoline, PVOID pCallback)
 {
 	if (pTrampoline != NULL) {
 		pTrampoline->Callback = pCallback;
@@ -2265,7 +2265,7 @@ LONG LhSetExclusiveACL(
 	return LhSetACL(&Handle->LocalACL, TRUE, InThreadIdList, InThreadCount);
 }
 
-LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
+LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 {
 	if (pppFailedPointer != NULL) {
 		// Used to get the last error.
@@ -2655,7 +2655,7 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 	return s_nPendingError;
 }
 
-LONG WINAPI DetourUpdateThread(_In_ pthread_t hThread)
+LONG DetourUpdateThread(_In_ pthread_t hThread)
 {
 	/*
 	LONG error;
@@ -2711,13 +2711,13 @@ const char* ___DETOUR_TRACE(const char *format, ...)
 }
 ///////////////////////////////////////////////////////////// Transacted APIs.
 //
-LONG WINAPI DetourAttach(_Inout_ PVOID *ppPointer,
+LONG DetourAttach(_Inout_ PVOID *ppPointer,
 	_In_ PVOID pDetour)
 {
 	return DetourAttachEx(ppPointer, pDetour, NULL, NULL, NULL);
 }
 
-LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
+LONG DetourAttachEx(_Inout_ PVOID *ppPointer,
 	_In_ PVOID pDetour,
 	_Out_opt_ PDETOUR_TRAMPOLINE *ppRealTrampoline,
 	_Out_opt_ PVOID *ppRealTarget,
@@ -3087,7 +3087,7 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 	return NO_ERROR;
 }
 
-LONG WINAPI DetourDetach(_Inout_ PVOID *ppPointer,
+LONG DetourDetach(_Inout_ PVOID *ppPointer,
 	_In_ PVOID pDetour)
 {
 	LONG error = NO_ERROR;
@@ -3271,7 +3271,7 @@ static DWORD DetourPageProtectAdjustExecute(_In_  DWORD dwOldProtect,
 }
 
 _Success_(return != FALSE)
-BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
+BOOL DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
 	_In_  PVOID pAddress,
 	_In_  SIZE_T nSize,
 	_In_  DWORD dwNewProtect,
@@ -3299,7 +3299,7 @@ BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
 }
 
 _Success_(return != FALSE)
-BOOL WINAPI DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
+BOOL DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
 	_In_  SIZE_T nSize,
 	_In_  DWORD dwNewProtect,
 	_Out_ PDWORD pdwOldProtect)

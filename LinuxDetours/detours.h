@@ -404,10 +404,10 @@ extern "C" {
 
 	//////////////////////////////////////////////////////////// Transaction APIs.
 	//
-	LONG WINAPI DetourTransactionBegin(VOID);
-	LONG WINAPI DetourTransactionAbort(VOID);
-	LONG WINAPI DetourTransactionCommit(VOID);
-	void* WINAPI DetourGetLastHandle(VOID);
+	LONG DetourTransactionBegin(VOID);
+	LONG DetourTransactionAbort(VOID);
+	LONG DetourTransactionCommit(VOID);
+	void* DetourGetLastHandle(VOID);
 
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -494,26 +494,26 @@ extern "C" {
 
 	LONG LhBarrierGetAddressOfReturnAddress(PVOID** OutValue);
 
-	LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer);
+	LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer);
 
-	LONG WINAPI DetourUpdateThread(_In_ pthread_t hThread);
+	LONG DetourUpdateThread(_In_ pthread_t hThread);
 
-	LONG WINAPI DetourAttach(_Inout_ PVOID *ppPointer,
+	LONG DetourAttach(_Inout_ PVOID *ppPointer,
 		_In_ PVOID pDetour);
 
-	LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
+	LONG DetourAttachEx(_Inout_ PVOID *ppPointer,
 		_In_ PVOID pDetour,
 		_Out_opt_ PDETOUR_TRAMPOLINE *ppRealTrampoline,
 		_Out_opt_ PVOID *ppRealTarget,
 		_Out_opt_ PVOID *ppRealDetour);
 
-	LONG WINAPI DetourDetach(_Inout_ PVOID *ppPointer,
+	LONG DetourDetach(_Inout_ PVOID *ppPointer,
 		_In_ PVOID pDetour);
 
-	BOOL WINAPI DetourSetIgnoreTooSmall(_In_ BOOL fIgnore);
-	BOOL WINAPI DetourSetRetainRegions(_In_ BOOL fRetain);
-	PVOID WINAPI DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound);
-	PVOID WINAPI DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound);
+	BOOL DetourSetIgnoreTooSmall(_In_ BOOL fIgnore);
+	BOOL DetourSetRetainRegions(_In_ BOOL fRetain);
+	PVOID DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound);
+	PVOID DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound);
 
 	void LhBarrierThreadDetach();
 
@@ -529,16 +529,16 @@ extern "C" {
 		void* InCallback,
 		TRACED_HOOK_HANDLE OutHandle);
 
-	LONG WINAPI LhUninstallHook(TRACED_HOOK_HANDLE InHandle);
+	LONG LhUninstallHook(TRACED_HOOK_HANDLE InHandle);
 
 
 	////////////////////////////////////////////////////////////// Code Functions.
 	//
-	PVOID WINAPI DetourFindFunction(_In_ LPCSTR pszModule,
+	PVOID DetourFindFunction(_In_ LPCSTR pszModule,
 		_In_ LPCSTR pszFunction);
-	PVOID WINAPI DetourCodeFromPointer(_In_ PVOID pPointer,
+	PVOID DetourCodeFromPointer(_In_ PVOID pPointer,
 		_Out_opt_ PVOID *ppGlobals);
-	PVOID WINAPI DetourCopyInstruction(_In_opt_ PVOID pDst,
+	PVOID DetourCopyInstruction(_In_opt_ PVOID pDst,
 		_Inout_opt_ PVOID *ppDstPool,
 		_In_ PVOID pSrc,
 		_Out_opt_ PVOID *ppTarget,
@@ -547,36 +547,36 @@ extern "C" {
 
 	///////////////////////////////////////////////////// Loaded Binary Functions.
 	//
-	HMODULE WINAPI DetourGetContainingModule(_In_ PVOID pvAddr);
-	HMODULE WINAPI DetourEnumerateModules(_In_opt_ HMODULE hModuleLast);
-	PVOID WINAPI DetourGetEntryPoint(_In_opt_ HMODULE hModule);
-	ULONG WINAPI DetourGetModuleSize(_In_opt_ HMODULE hModule);
+	HMODULE DetourGetContainingModule(_In_ PVOID pvAddr);
+	HMODULE DetourEnumerateModules(_In_opt_ HMODULE hModuleLast);
+	PVOID DetourGetEntryPoint(_In_opt_ HMODULE hModule);
+	ULONG DetourGetModuleSize(_In_opt_ HMODULE hModule);
 
 
 	_Writable_bytes_(*pcbData)
 		_Readable_bytes_(*pcbData)
 		_Success_(return != NULL)
-		PVOID WINAPI DetourFindPayload(_In_opt_ HMODULE hModule,
+		PVOID DetourFindPayload(_In_opt_ HMODULE hModule,
 			_In_ REFGUID rguid,
 			_Out_ DWORD *pcbData);
 
 	_Writable_bytes_(*pcbData)
 		_Readable_bytes_(*pcbData)
 		_Success_(return != NULL)
-		PVOID WINAPI DetourFindPayloadEx(_In_ REFGUID rguid,
+		PVOID DetourFindPayloadEx(_In_ REFGUID rguid,
 			_Out_ DWORD * pcbData);
 
-	DWORD WINAPI DetourGetSizeOfPayloads(_In_opt_ HMODULE hModule);
+	DWORD DetourGetSizeOfPayloads(_In_opt_ HMODULE hModule);
 
 	///////////////////////////////////////////////// Persistent Binary Functions.
 	//
 
-	PDETOUR_BINARY WINAPI DetourBinaryOpen(_In_ HANDLE hFile);
+	PDETOUR_BINARY DetourBinaryOpen(_In_ HANDLE hFile);
 
 	_Writable_bytes_(*pcbData)
 		_Readable_bytes_(*pcbData)
 		_Success_(return != NULL)
-		PVOID WINAPI DetourBinaryEnumeratePayloads(_In_ PDETOUR_BINARY pBinary,
+		PVOID DetourBinaryEnumeratePayloads(_In_ PDETOUR_BINARY pBinary,
 			_Out_opt_ GUID *pGuid,
 			_Out_ DWORD *pcbData,
 			_Inout_ DWORD *pnIterator);
@@ -584,11 +584,11 @@ extern "C" {
 	_Writable_bytes_(*pcbData)
 		_Readable_bytes_(*pcbData)
 		_Success_(return != NULL)
-		PVOID WINAPI DetourBinaryFindPayload(_In_ PDETOUR_BINARY pBinary,
+		PVOID DetourBinaryFindPayload(_In_ PDETOUR_BINARY pBinary,
 			_In_ REFGUID rguid,
 			_Out_ DWORD *pcbData);
 
-	PVOID WINAPI DetourBinarySetPayload(_In_ PDETOUR_BINARY pBinary,
+	PVOID DetourBinarySetPayload(_In_ PDETOUR_BINARY pBinary,
 		_In_ REFGUID rguid,
 		_In_reads_opt_(cbData) PVOID pData,
 		_In_ DWORD cbData);
@@ -670,13 +670,13 @@ extern "C" {
 #endif // __cplusplus
 
 #define DETOUR_OFFLINE_LIBRARY(x)                                       \
-PVOID WINAPI DetourCopyInstruction##x(_In_opt_ PVOID pDst,              \
+PVOID DetourCopyInstruction##x(_In_opt_ PVOID pDst,              \
                                       _Inout_opt_ PVOID *ppDstPool,     \
                                       _In_ PVOID pSrc,                  \
                                       _Out_opt_ PVOID *ppTarget,        \
                                       _Out_opt_ LONG *plExtra);         \
                                                                         \
-BOOL WINAPI DetourSetCodeModule##x(_In_ HMODULE hModule,                \
+BOOL DetourSetCodeModule##x(_In_ HMODULE hModule,                \
                                    _In_ BOOL fLimitReferencesToModule); \
 
 	DETOUR_OFFLINE_LIBRARY(X86)
@@ -693,14 +693,14 @@ BOOL WINAPI DetourSetCodeModule##x(_In_ HMODULE hModule,                \
 		//
 
 		_Success_(return != FALSE)
-		BOOL WINAPI DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
+		BOOL DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
 			_In_  PVOID pAddress,
 			_In_  SIZE_T nSize,
 			_In_  DWORD dwNewProtect,
 			_Out_ PDWORD pdwOldProtect);
 
 	_Success_(return != FALSE)
-		BOOL WINAPI DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
+		BOOL DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
 			_In_  SIZE_T nSize,
 			_In_  DWORD dwNewProtect,
 			_Out_ PDWORD pdwOldProtect);
@@ -810,8 +810,6 @@ BOOL IsThreadIntercepted(
 	HOOK_ACL* LocalACL,
 	ULONG InThreadID);
 void ReleaseSelfProtection();
-
-
 
 extern BARRIER_UNIT         Unit;
 extern RTL_SPIN_LOCK        GlobalHookLock;
