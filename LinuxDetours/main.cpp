@@ -2,7 +2,7 @@
 #include "detours.h"
 #include <glog/logging.h>
 
-static unsigned int(WINAPI * TrueSleepEx)(unsigned int seconds) = sleep;
+static unsigned int(* TrueSleepEx)(unsigned int seconds) = sleep;
 
 unsigned int sleep_detour(unsigned int seconds)
 {
@@ -11,12 +11,12 @@ unsigned int sleep_detour(unsigned int seconds)
 
 	return ret;
 }
-unsigned int WINAPI TestDetourB(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
+unsigned int TestDetourB(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
 	LOG(INFO) << ("called TestDetourB.\n");
 	return seconds + 1;
 }
-unsigned int WINAPI TestDetourA(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e, unsigned int f, unsigned int g, unsigned int h)
+unsigned int TestDetourA(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e, unsigned int f, unsigned int g, unsigned int h)
 {
 	printf("Detoured B -> A %d %d %d %d %d %d\n", a, b, c, d, e);
 	return TestDetourB(seconds + 2, a, b, c, d, e);
@@ -296,7 +296,7 @@ __attribute__((naked)) long add()
 		"ret"); /* Basic assembler statements are supported. */
 }
 #endif
-VOID* WINAPI TestSleep(void*)
+VOID* TestSleep(void*)
 {
 	LOG(INFO) << "detours: TestDetourB returned " << TestDetourB(1, 2, 3, 4, 5, 6);
 	LOG(INFO) << ("detours: Calling sleep for 1 second.\n");
