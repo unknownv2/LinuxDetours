@@ -229,6 +229,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="plthook_elf.c" />
     <ClCompile Include="trampoline_arm.cpp" />
+    <ClCompile Include="trampoline_x86.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="detours.h" />
@@ -241,7 +242,7 @@
       <PreprocessorDefinitions>_AMD64_;_UNIX64</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalOptions>-lpthread -ldl %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-lpthread -ldl -lglog %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Arm|x64'">
