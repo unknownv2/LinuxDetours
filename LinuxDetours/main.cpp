@@ -299,9 +299,9 @@ __attribute__((naked)) long add()
 VOID* TestSleep(void*)
 {
 	LOG(INFO) << "detours: TestDetourB returned " << TestDetourB(1, 2, 3, 4, 5, 6);
-	LOG(INFO) << ("detours: Calling sleep for 1 second.\n");
+	LOG(INFO) << "detours: Calling sleep for 1 second.";
 	sleep(1);
-	LOG(INFO) << "detours: Calling sleep again for 2 seconds.\n";
+	LOG(INFO) << "detours: Calling sleep again for 2 seconds.";
 	sleep(2);
 	
 	LOG(INFO)  << ("detours: Done sleeping.\n\n");
