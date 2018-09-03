@@ -655,28 +655,52 @@ PBYTE detour_gen_jmp_immediate(PBYTE pbCode, PBYTE *ppPool, PBYTE pbJmpVal)
 	}
 	//*((UINT32*&)pbCode)++ = (UINT32)0xF004E51F | (delta);
 #elif defined(DETOURS_ARM)
-	PBYTE pbLiteral;
-	if (ppPool != NULL) {
-		*ppPool = *ppPool - 4;
-		pbLiteral = *ppPool;
+	if (reinterpret_cast<uintptr_t>(pbCode) & 0x1) {
+		// reset is_thumb_flag
+		pbCode = DETOURS_PFUNC_TO_PBYTE(pbCode);
+		PBYTE pbLiteral;
+		if (ppPool != NULL) {
+			*ppPool = *ppPool - 4;
+			pbLiteral = *ppPool;
+		}
+		else {
+			pbLiteral = align4(pbCode + 6);
+		}
+		*((PBYTE*&)pbLiteral) = DETOURS_PBYTE_TO_PFUNC(pbJmpVal);
+		LONG delta = pbLiteral - align4(pbCode + 4);
+
+		// stored as: DF F8 00 F0 
+		write_thumb_opcode(pbCode, 0xf8dff000 | delta);     // LDR PC,[PC+n]
+		//write_thumb_opcode(pbCode, 0x9FE504f0 | delta);  
+
+		//write_thumb_opcode(pbCode, 0xF000DFF8 | delta);
+
+		if (ppPool == NULL) {
+			if (((ULONG)pbCode & 2) != 0) {
+				write_thumb_opcode(pbCode, 0xdefe);         // BREAK
+			}
+			pbCode += 4;
+		}
 	}
 	else {
-		pbLiteral = align4(pbCode + 6);
-	}
-	*((PBYTE*&)pbLiteral) = DETOURS_PBYTE_TO_PFUNC(pbJmpVal);
-	LONG delta = pbLiteral - align4(pbCode + 4);
-
-	// stored as: DF F8 00 F0 
-	write_thumb_opcode(pbCode, 0xf8dff000 | delta);     // LDR PC,[PC+n]
-	//write_thumb_opcode(pbCode, 0x9FE504f0 | delta);  
-
-	//write_thumb_opcode(pbCode, 0xF000DFF8 | delta);
-
-	if (ppPool == NULL) {
-		if (((ULONG)pbCode & 2) != 0) {
-			write_thumb_opcode(pbCode, 0xdefe);         // BREAK
+		PBYTE pbLiteral;
+		if (ppPool != NULL) {
+			*ppPool = *ppPool - 4;
+			pbLiteral = *ppPool;
 		}
-		pbCode += 4;
+		else {
+			pbLiteral = align4(pbCode + 4);
+		}
+		*((PBYTE*&)pbLiteral) = pbJmpVal;
+		LONG delta = pbLiteral - align4(pbCode + 4);
+		// stored as: F0 04 1F E5 
+		*((UINT32*&)pbCode)++ = A$ldr_rd_$rn_im$(15, 15, delta - 4);
+		if (ppPool == NULL) {
+			if (((ULONG)pbCode & 2) != 0) {
+				write_arm_opcode(pbCode, 0xe320f000);
+			}
+			pbCode += 4;
+		}
 	}
 #endif
 	return pbCode;
@@ -1546,8 +1570,6 @@ extern "C" void Trampoline_ASM_x86();
 #endif
 
 #if defined(DETOURS_X64) || defined(DETOURS_X86)
-//|| defined(DETOURS_ARM64)
-
 void* trampoline_template() {
 
 	uintptr_t ret = 0;
@@ -1567,33 +1589,18 @@ void* trampoline_data() {
 }
 UCHAR* DetourGetTrampolinePtr()
 {
-	// bypass possible Visual Studio debug jump table
 #ifdef DETOURS_X64
 	UCHAR* Ptr = (UCHAR*)trampoline_template();
-	//Trampoline_ASM_x64;
 #endif
 
 #ifdef DETOURS_X86
 	UCHAR* Ptr = (UCHAR*)Trampoline_ASM_x86;
 #endif
-#ifdef DETOURS_ARM
-	//UCHAR* Ptr = (UCHAR*)Trampoline_ASM_ARM;
-	//Ptr += 5 * 4;
-#endif
-
-#ifdef DETOURS_ARM64
-	UCHAR* Ptr = (UCHAR*)Trampoline_ASM_ARM64;
-	Ptr += 5 * 8;
-#endif
 
 	if (*Ptr == 0xE9)
 		Ptr += *((int*)(Ptr + 1)) + 5;
 
-#ifdef DETOURS_X64
-	return Ptr;// +5 * 8;
-#else
-	return Ptr;
-#endif    
+	return Ptr;  
 }
 ULONG GetTrampolineSize()
 {
@@ -1604,41 +1611,6 @@ ULONG GetTrampolineSize()
 
 	___TrampolineSize = code_size_;
 	return ___TrampolineSize;
-	/*
-	UCHAR*		Ptr = DetourGetTrampolinePtr();
-	UCHAR*		BasePtr = Ptr;
-	ULONG       Signature;
-	ULONG       Index;
-
-	if (___TrampolineSize != 0)
-		return ___TrampolineSize;
-
-	// search for signature
-	for (Index = 0; Index < 2000 ; Index++) // some always large enough value (2000)
-	{
-		Signature = *((ULONG*)Ptr);
-
-		if (Signature == 0x12345678)
-		{
-#ifdef DETOURS_ARM            
-			___TrampolineSize = (ULONG)(align4(Ptr + 7) - BasePtr);
-			return ___TrampolineSize ;
-#endif
-#if defined(DETOURS_ARM64)
-			___TrampolineSize = (ULONG)(Ptr - BasePtr) + 4;
-			return ___TrampolineSize;
-#endif    
-#if defined(DETOURS_X64) || defined(DETOURS_X86)
-			___TrampolineSize = (ULONG)(Ptr - BasePtr);
-			return ___TrampolineSize;
-#endif            
-		}
-
-		Ptr++;
-	}
-	
-
-	return 0;*/
 }
 #endif
 #if defined(DETOURS_ARM) || defined(DETOURS_ARM64)
@@ -1655,12 +1627,14 @@ extern "C" {
 	extern void* trampoline_data_arm;
 #endif
 }
-void* trampoline_template(void* chained) {
+static ULONG ___TrampolineThumbSize = 0;
+
+void* trampoline_template(ULONG isThumb) {
 	uintptr_t ret = 0;
 #if defined(_ARM64_)
 	ret = reinterpret_cast<uintptr_t>(&trampoline_template_arm64);
 #elif defined(_ARM32_) || defined(_ARM_)
-	if (reinterpret_cast<uintptr_t>(chained) & 0x1) {
+	if (isThumb) {
 		ret = reinterpret_cast<uintptr_t>(&trampoline_template_thumb);
 	}
 	else {
@@ -1671,11 +1645,11 @@ void* trampoline_template(void* chained) {
 	ret &= ~1;
 	return reinterpret_cast<void*>(ret);
 }
-void* trampoline_data(void* chained) {
+void* trampoline_data(ULONG isThumb) {
 #if defined(_ARM64_)
 	return (&trampoline_data_arm_64);
 #elif defined(_ARM32_) || defined(_ARM_)
-	if (reinterpret_cast<uintptr_t>(chained) & 0x1) {
+	if (isThumb) {
 		return &trampoline_data_thumb;
 	}
 	else {
@@ -1691,56 +1665,37 @@ UCHAR* DetourGetArmTrampolinePtr(ULONG isThumb)
 	UCHAR* Ptr = NULL;
 #if defined(DETOURS_ARM)
 	if (isThumb) {
-		Ptr = (UCHAR*)trampoline_template((PVOID)isThumb);
-			//(UCHAR*)&trampoline_template_arm1;
-
-			//(UCHAR*)Trampoline_ASM_ARM_T;
+		Ptr = static_cast<UCHAR*>(trampoline_template(isThumb));
 	}
 	else {
-		Ptr = (UCHAR*)trampoline_template((PVOID)isThumb);
-			//(UCHAR*)&trampoline_template_arm1;
-			//Trampoline_ASM_ARM;
+		Ptr = static_cast<UCHAR*>(trampoline_template(isThumb));
 	}
 #elif defined(DETOURS_ARM64)
 	Ptr = (UCHAR*)trampoline_template(NULL);
 #endif
-	//Ptr += 5 * 4;
-	//___TrampolineSize = 0x10C;
 	return Ptr;
 }
 ULONG GetTrampolineSize(ULONG isThumb)
 {
-	if (___TrampolineSize != 0)
-		return ___TrampolineSize;
-	uint32_t code_size_ = reinterpret_cast<uintptr_t>(trampoline_data((PVOID)isThumb)) -
-		reinterpret_cast<uintptr_t>(trampoline_template((PVOID)isThumb));
-
-	___TrampolineSize = code_size_;
-	return ___TrampolineSize;
-	/*
-	UCHAR*		Ptr = DetourGetArmTrampolinePtr(isThumb);
-	UCHAR*		BasePtr = Ptr;
-	ULONG       Signature;
-	ULONG       Index;
-
-	if (___TrampolineSize != 0)
-		return ___TrampolineSize;
-
-	// search for signature
-	for (Index = 0; Index < 2000 ; Index++)
-	{
-		Signature = *((ULONG*)Ptr);
-
-		if (Signature == 0x12345678)
-		{
-			___TrampolineSize = (ULONG)(align4(Ptr + 4) - BasePtr);
-			return ___TrampolineSize ;
+	if (isThumb ) {
+		if (___TrampolineThumbSize != 0) {
+			return ___TrampolineThumbSize;
 		}
-
-		Ptr++;
 	}
-
-	return 0;*/
+	else {
+		if (___TrampolineSize != 0) {
+			return ___TrampolineSize;
+		}
+	}
+	uint32_t code_size_ = reinterpret_cast<uintptr_t>(trampoline_data(isThumb)) -
+		reinterpret_cast<uintptr_t>(trampoline_template(isThumb));
+	if (isThumb) {
+		___TrampolineThumbSize = code_size_;
+	}
+	else {
+		___TrampolineSize = code_size_;
+	}
+	return code_size_;
 }
 #endif
 
@@ -2363,8 +2318,9 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			const ULONG TrampolineSize = GetTrampolineSize();
 			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
 				//error, handle this better
-				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
+				DETOUR_TRACE(("detours: TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
 					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
+				LOG(FATAL) << "Invalid trampoline size: " << TrampolineSize;
 			}
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampoline, TrampolineSize);
@@ -2386,10 +2342,12 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_X86
 			PBYTE trampoline = DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize();
-			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
+			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
 				//error, handle this better
-				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
+				DETOUR_TRACE(("detours: TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
 					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
+				LOG(FATAL) << "Invalid trampoline size: " << TrampolineSize;
+
 			}
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampoline, TrampolineSize);
@@ -2431,14 +2389,23 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 			const ULONG TrampolineSize = GetTrampolineSize(o->pTrampoline->IsThumbTarget);
 			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
 				//error, handle this better
-				DETOUR_TRACE(("detours: TrampolineSize >= DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
+				DETOUR_TRACE(("detours: TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)",
 					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
+				LOG(FATAL) << "Invalid trampoline size: " << TrampolineSize;
 			}
 
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 
 			PBYTE trampolineStart = align4(trampoline);
-			memcpy(endOfTramp, trampolineStart, TrampolineSize);
+			// means thumb_to_arm thunk is not compiled
+			uint32_t arm_to_thunk_code_size_offset = 0;
+#if not defined(DETOURS_ARM32)
+			// otherwise, copy to (trampoline + 4) to offset thumb_to_arm thunk code (byte size = 4)
+			if (!o->pTrampoline->IsThumbTarget) {
+				arm_to_thunk_code_size_offset = 4;
+			}
+#endif
+			memcpy(endOfTramp + arm_to_thunk_code_size_offset, trampolineStart, TrampolineSize);
 
 			o->pTrampoline->HookIntro = (PVOID)BarrierIntro;
 			o->pTrampoline->HookOutro = (PVOID)BarrierOutro;
@@ -2455,7 +2422,8 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 				*o->ppbPointer = (o->pTrampoline->rbCode);
 			}
 			o->pTrampoline->IsExecutedPtr = new int();
-			PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, (PBYTE)o->pTrampoline->Trampoline);
+			PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget + o->pTrampoline->IsThumbTarget, NULL,
+				(PBYTE)o->pTrampoline->Trampoline + arm_to_thunk_code_size_offset);
 			// PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, o->pTrampoline->pbDetour);
 			pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
 	
@@ -2465,10 +2433,12 @@ LONG WINAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #ifdef DETOURS_ARM64
 			UCHAR * trampolineStart = DetourGetArmTrampolinePtr(NULL);// DetourGetTrampolinePtr();
 			const ULONG TrampolineSize = GetTrampolineSize(NULL);// GetTrampolineSize();
-			if (TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE) {
+			if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
 				//error, handle this better
-				DETOUR_TRACE(("detours: TrampolineSize != DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)", 
+				DETOUR_TRACE(("detours: TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)", 
 					TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
+				LOG(FATAL) << "Invalid trampoline size: " << TrampolineSize;
+
 			}
 			PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
 			memcpy(endOfTramp, trampolineStart, TrampolineSize);
@@ -3044,7 +3014,7 @@ LONG WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 #endif // DETOURS_X86
 
 #ifdef DETOURS_ARM
-	pbTrampoline = detour_gen_jmp_immediate(pbTrampoline, &pbPool, pTrampoline->pbRemain);
+	pbTrampoline = detour_gen_jmp_immediate(pbTrampoline + pTrampoline->IsThumbTarget, &pbPool, pTrampoline->pbRemain);
 	pbTrampoline = detour_gen_brk(pbTrampoline, pbPool);
 #endif // DETOURS_ARM
 
