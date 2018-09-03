@@ -4,50 +4,49 @@
 __attribute__((naked))
  void trampoline_template_arm_func() {
 	asm(
-		"NETIntro:        /* .NET Barrier Intro Function */; "
+	"NETIntro:"        /* .NET Barrier Intro Function */
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
-		"OldProc:        /* Original Replaced Function */;"
+	"OldProc:"        /* Original Replaced Function */
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
-		"NewProc:        /* Detour Function */;"
+	"NewProc:"        /* Detour Function */
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
-		"NETOutro:       /* .NET Barrier Outro Function */;"
+	"NETOutro:"       /* .NET Barrier Outro Function */
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
-		"IsExecutedPtr:  /* Count of times trampoline was executed */;"
+	"IsExecutedPtr:"  /* Count of times trampoline was executed */
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
 		".byte 0;"
 
-		".global trampoline_template_thumb;"
-		"trampoline_template_thumb :"
+	".global trampoline_template_thumb;"
+	"trampoline_template_thumb:"
 #if not defined(DETOURS_ARM32)
-		".thumb_func;"
+	".thumb_func;"
 		"bx pc;"
 		"mov r8, r8;" // padding since pc is set to (current_instruction + 4) in Thumb Mode
 #endif
-		".global trampoline_template_arm;"
-		"trampoline_template_arm :"
-		".code 32;"
-
-		"start:"
+	".global trampoline_template_arm;"
+	"trampoline_template_arm:"
+	".code 32;"
+	"start:"
 		"push    {r0, r1, r2, r3, r4, lr};"
 		"push    {r5, r6, r7, r8, r9, r10};"
 		"vpush   {d0-d7};"
 		"ldr     r5, IsExecutedPtr;"
 		"dmb     ish;"
-		"try_inc_lock:;"
+	"try_inc_lock:"
 		"ldrex   r0, [r5];"
 		"add     r0, r0, #1;"
 		"strex   r1, r0, [r5];"
@@ -57,9 +56,9 @@ __attribute__((naked))
 		"ldr     r2, NewProc;"
 		"cmpeq   r2, #0;"
 		"bne     CALL_NET_ENTRY;"
-		"/* call original method  */ ;"
+		/* call original method  */
 		"dmb     ish;"
-		"try_dec_lock:;"
+	"try_dec_lock:"
 		"ldrex   r0, [r5];"
 		"add     r0, r0, #-1;"
 		"strex   r1, r0, [r5];"
@@ -69,23 +68,24 @@ __attribute__((naked))
 		"ldr   r5, OldProc;"
 		"b     TRAMPOLINE_EXIT;"
 
-		"/* call hook handler or original method... */;"
-		"CALL_NET_ENTRY:;"
+		/* call hook handler or original method... */
+	"CALL_NET_ENTRY:"
 
-		"adr     r0, start /* Hook handle (only a position hint) */        ;"
-		"add     r2, sp, #0x6c /* original sp (address of return address)*/;"
-		"ldr     r1, [sp, #0x6c] /* return address (value stored in original sp) */;"
-		"ldr     r4, NETIntro /* call NET intro */;"
-		"blx     r4 /* Hook->NETIntro(Hook, RetAddr, InitialSP)*/;"
+		"adr     r0, start;" /* Hook handle (only a position hint) */
+		"add     r2, sp, #0x6c;" /* original sp (address of return address)*/
+		"ldr     r1, [sp, #0x6c];" /* return address (value stored in original sp) */
+		"ldr     r4, NETIntro;" /* call NET intro */
+		"blx     r4;" /* Hook->NETIntro(Hook, RetAddr, InitialSP)*/
 
-		"/* should call original method?      */        ;"
+		/* should call original method?      */
 		"cmp     r0, #0;"
 		"bne     CALL_HOOK_HANDLER;"
 
-		"/* call original method */  ;"
+		/* call original method */ 
 		"ldr     r5, IsExecutedPtr;"
 		"dmb     ish;"
-		"try_dec_lock2:;"
+
+	"try_dec_lock2:"
 		"ldrex   r0, [r5];"
 		"add     r0, r0, #-1;"
 		"strex   r1, r0, [r5];"
@@ -96,24 +96,24 @@ __attribute__((naked))
 		"ldr     r5, OldProc;"
 		"b       TRAMPOLINE_EXIT;"
 
-		"CALL_HOOK_HANDLER:;"
-		"/* call hook handler        */; "
+	"CALL_HOOK_HANDLER:"
+		/* call hook handler        */
 		"ldr     r5, NewProc;"
 		"adr     r4, CALL_NET_OUTRO;"
-		"str     r4, [sp, #0x6c] /* store outro return to stack after hook handler is called     */ ;"
+		"str     r4, [sp, #0x6c];" /* store outro return to stack after hook handler is called     */
 		"b       TRAMPOLINE_EXIT;"
-		" /* this is where the handler returns... */;"
-		"CALL_NET_OUTRO:;"
+		/* this is where the handler returns... */
+	"CALL_NET_OUTRO:"
 		"mov     r5, #0;"
-		"push    {r0, r1, r2, r3, r4, r5} /* save return handler */;"
+		"push    {r0, r1, r2, r3, r4, r5};" /* save return handler */
 		"add     r1, sp, #5*4;"
-		"adr     r0, start /* get address of next Hook struct pointer */;"
-		"/* Param 2: Address of return address */;"
+		"adr     r0, start;" /* get address of next Hook struct pointer */
+		/* Param 2: Address of return address */
 		"ldr     r5, NETOutro;"
-		"blx     r5       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/;"
+		"blx     r5;"       /* Hook->NETOutro(Hook, InAddrOfRetAddr)*/
 		"ldr     r5, IsExecutedPtr;"
 		"dmb     ish;"
-		"try_dec_lock3:;"
+	"try_dec_lock3:"
 		"ldrex   r0, [r5];"
 		"add     r0, r0, #-1;"
 		"strex   r1, r0, [r5];"
@@ -121,18 +121,19 @@ __attribute__((naked))
 		"bne     try_dec_lock3;"
 		"dmb     ish;"
 		"pop     {r0, r1, r2, r3, r4, lr} /* restore return value of user handler... */;"
-		"/* finally return to saved return address - the caller of this trampoline...  */;"
+		/* finally return to saved return address - the caller of this trampoline...  */
 		"bx      lr;"
-		"TRAMPOLINE_EXIT:;"
+
+	"TRAMPOLINE_EXIT:"
 		"mov     r12, r5;"
 		"vpop    {d0-d7};"
 		"pop     {r5, r6, r7, r8, r9, r10};"
 		"pop     {r0, r1, r2, r3, r4, lr};"
 		"bx      r12 ; mov     pc, r12;"
-		".global trampoline_data_arm;"
-		"trampoline_data_arm :"
-		".global trampoline_data_thumb;"
-		"trampoline_data_thumb :"
+	".global trampoline_data_arm;"
+	"trampoline_data_arm:"
+	".global trampoline_data_thumb;"
+	"trampoline_data_thumb:"
 		".word 0x12345678;"
 	);
 }
