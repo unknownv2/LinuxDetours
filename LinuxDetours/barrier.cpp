@@ -50,14 +50,14 @@ void RtlAcquireLock(RTL_SPIN_LOCK* InLock)
 {
 	pthread_mutex_lock(&InLock->Lock);
 
-	ASSERT2(!InLock->IsOwned, L"barrier.cpp - !InLock->IsOwned");
+	DETOUR_ASSERT(!InLock->IsOwned, L"barrier.cpp - !InLock->IsOwned");
 
 	InLock->IsOwned = TRUE;
 }
 
 void RtlReleaseLock(RTL_SPIN_LOCK* InLock)
 {
-	ASSERT2(InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
+	DETOUR_ASSERT(InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
 
 	InLock->IsOwned = FALSE;
 
@@ -66,7 +66,7 @@ void RtlReleaseLock(RTL_SPIN_LOCK* InLock)
 
 void RtlDeleteLock(RTL_SPIN_LOCK* InLock)
 {
-	ASSERT2(!InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
+	DETOUR_ASSERT(!InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
 
 	pthread_mutex_destroy(&InLock->Lock);
 }
@@ -121,10 +121,10 @@ FINALLY_OUTRO:
 
 void RtlFreeMemory(void* InPointer)
 {
-	ASSERT2(InPointer != NULL, "barrier.cpp - InPointer != NULL");
+	DETOUR_ASSERT(InPointer != NULL, "barrier.cpp - InPointer != NULL");
 
 #ifdef _DEBUG
-	//free(InPointer);
+	free(InPointer);
 #else
 	free(InPointer);
 #endif
@@ -140,7 +140,7 @@ BOOL RtlIsValidPointer(PVOID InPtr, ULONG InSize)
 	if ((InPtr == NULL) || (InPtr == (PVOID)~0))
 		return FALSE;
 
-	//ASSERT2(!IsBadReadPtr(InPtr, InSize), "barrier.cpp - !IsBadReadPtr(InPtr, InSize)");
+	//DETOUR_ASSERT(!IsBadReadPtr(InPtr, InSize), "barrier.cpp - !IsBadReadPtr(InPtr, InSize)");
 
 	return TRUE;
 }
@@ -167,7 +167,11 @@ void RtlSetLastError(LONG InCode, LONG InNtStatus, WCHAR* InMessage)
 }
 void RtlAssert(BOOL InAssert, LPCWSTR lpMessageText)
 {
+	if (InAssert) {
+		return;
+	}
 
+	LOG(FATAL) << lpMessageText;
 }
 
 
@@ -265,7 +269,7 @@ LONG LhSetACL(
 
 	ULONG           Index;
 
-	ASSERT2(IsValidPointer(InAcl, sizeof(HOOK_ACL)), "barrier.cpp - IsValidPointer(InAcl, sizeof(HOOK_ACL))");
+	DETOUR_ASSERT(IsValidPointer(InAcl, sizeof(HOOK_ACL)), "barrier.cpp - IsValidPointer(InAcl, sizeof(HOOK_ACL))");
 
 	if (InThreadCount > MAX_ACE_COUNT)
 		return -2;
@@ -400,7 +404,7 @@ BOOL TlsAddCurrentThread(THREAD_LOCAL_STORAGE* InTls)
 		if ((InTls->IdList[i] == 0) && (Index == -1))
 			Index = i;
 
-		ASSERT2(InTls->IdList[i] != CurrentId, "barrier.cpp - InTls->IdList[i] != CurrentId");
+		DETOUR_ASSERT(InTls->IdList[i] != CurrentId, "barrier.cpp - InTls->IdList[i] != CurrentId");
 	}
 
 	if (Index == -1)
@@ -571,7 +575,7 @@ void DetourExport ReleaseSelfProtection()
 	*/
 	LPTHREAD_RUNTIME_INFO		Runtime = NULL;
 
-	ASSERT2(TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected, "barrier.cpp - TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected");
+	DETOUR_ASSERT(TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected, "barrier.cpp - TlsGetCurrentValue(&Unit.TLS, &Runtime) && Runtime->IsProtected");
 
 	Runtime->IsProtected = FALSE;
 }

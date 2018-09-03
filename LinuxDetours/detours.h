@@ -419,7 +419,7 @@ extern "C" {
 #define MAX_THREAD_COUNT            128
 #define MAX_PASSTHRU_SIZE           1024 * 64
 
-#define ASSERT2(expr, Msg)          RtlAssert((BOOL)(expr),(LPCWSTR) Msg);
+#define DETOUR_ASSERT(expr, Msg)          RtlAssert((BOOL)(expr),(LPCWSTR) Msg);
 #define THROW(code, Msg)            { NtStatus = (code); RtlSetLastError(0, NtStatus, Msg); goto THROW_OUTRO; }
 
 #define RTL_SUCCESS(ntstatus)       SUCCEEDED(ntstatus)
