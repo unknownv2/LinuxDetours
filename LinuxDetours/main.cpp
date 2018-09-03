@@ -4,14 +4,16 @@
 
 static unsigned int(WINAPI * TrueSleepEx)(unsigned int seconds) = sleep;
 
-unsigned int WINAPI TimedSleepEx(unsigned int seconds)
+unsigned int sleep_detour(unsigned int seconds)
 {
+	LOG(INFO) << ("called sleep_detour.\n");
 	DWORD ret = sleep(seconds);
 
 	return ret;
 }
 unsigned int WINAPI TestDetourB(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
+	LOG(INFO) << ("called TestDetourB.\n");
 	return seconds + 1;
 }
 unsigned int WINAPI TestDetourA(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e, unsigned int f, unsigned int g, unsigned int h)
@@ -22,8 +24,8 @@ unsigned int WINAPI TestDetourA(unsigned int seconds, unsigned int a, unsigned i
 
 extern "C" {
 
-#if defined(_ARM64_)
-	extern void* trampoline_data_arm_64;
+#if defined(_ARM641_)
+	extern void* trampoline_data_arm_64_t;
 #elif defined(_ARM32_)
 	extern void* trampoline_data_arm;
 	//extern void(*trampoline_template_thumb)();
@@ -34,8 +36,8 @@ extern "C" {
 #endif
 }
 
-#if defined (_ARM64_)
-__attribute__((naked)) void trampoline_template_arm64()
+#if defined (_ARM641_)
+__attribute__((naked)) void trampoline_template_arm64_t()
 {
 	asm(
 		"NETIntro:        /* .NET Barrier Intro Function */;"
@@ -161,8 +163,8 @@ __attribute__((naked)) void trampoline_template_arm64()
 		"mov     sp, x29;"
 		"ldp     x29, x30, [sp], #16;"
 		"br      x10;"
-		"trampoline_data_arm_64:"
-		".global trampoline_data_arm_64;"
+		"trampoline_data_arm_64_t:"
+		".global trampoline_data_arm_64_t;"
 		".word 0x12345678;"
 		
 		"ret"); /* Basic assembler statements are supported. */
@@ -216,7 +218,7 @@ void trampoline_template_arm_test() {
 void* trampoline_template_test(void* chained) {
 	uintptr_t ret = 0;
 #if defined(_ARM64_)
-	ret = reinterpret_cast<uintptr_t>(&trampoline_template_arm64) + (5 * sizeof(PVOID));
+	ret = reinterpret_cast<uintptr_t>(&trampoline_template_arm64_t) + (5 * sizeof(PVOID));
 #elif defined(_ARM32_)
 	if (reinterpret_cast<uintptr_t>(chained) & 0x1) {
 		ret = reinterpret_cast<uintptr_t>(&trampoline_template_thumb) + (5 * sizeof(PVOID));
@@ -231,7 +233,7 @@ void* trampoline_template_test(void* chained) {
 }
 void* trampoline_data_test(void* chained) {
 #if defined(_ARM64_)
-	return (&trampoline_data_arm_64);
+	return (&trampoline_data_arm_64_t);
 #elif defined(_ARM32_)
 	if (reinterpret_cast<uintptr_t>(chained) & 0x1) {
 		return &trampoline_data_thumb;
@@ -253,7 +255,7 @@ void test_trampoline()
 
 }
 #endif
-#if defined(_ARM64)
+#if defined(_ARM64_1)
 
 long var;
 
@@ -296,15 +298,13 @@ __attribute__((naked)) long add()
 #endif
 VOID* WINAPI TestSleep(void*)
 {
-	printf("\n");
-	fflush(stdout);
-	printf("detours: TestDetourB returned %d\n", TestDetourB(1, 2, 3, 4, 5, 6));
-	printf("detours: Calling sleep for 1 second.\n");
+	LOG(INFO) << "detours: TestDetourB returned " << TestDetourB(1, 2, 3, 4, 5, 6);
+	LOG(INFO) << ("detours: Calling sleep for 1 second.\n");
 	sleep(1);
-	printf("detours: Calling sleep again for 1 second.\n");
+	LOG(INFO) << "detours: Calling sleep again for 2 seconds.\n";
 	sleep(2);
 	
-	printf("detours: Done sleeping.\n\n");
+	LOG(INFO)  << ("detours: Done sleeping.\n\n");
 	
 	return NULL;
 }
@@ -330,6 +330,7 @@ LONG DetDetourUpdateThread(pthread_t threadId)
 {
 	return DetourUpdateThread(threadId);
 }
+
 #define BITS 32
 
 int rotateRight(int num, int by)
@@ -382,7 +383,7 @@ int main(int argc, char * argv[])
 	//sleep(1);
 	//LhInstallHook((void*)DetourUpdateThread, (void*)DetDetourUpdateThread, &selfHandle2, outHandle2);
 	
-	//LhInstallHook((void*)sleep, (void*)TimedSleepEx, &selfHandle2, outHandle2);
+	LhInstallHook((void*)sleep, (void*)sleep_detour, &selfHandle2, outHandle2);
 	
 	LhInstallHook((void*)TestDetourB, (void*)TestDetourA, &selfHandle, outHandle);
 	ULONG ret = LhSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle);
