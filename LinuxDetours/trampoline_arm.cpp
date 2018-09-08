@@ -55,7 +55,7 @@ __attribute__((naked))
 		"dmb     ish;"
 		"ldr     r2, NewProc;"
 		"cmpeq   r2, #0;"
-		"bne     CALL_NET_ENTRY;"
+		"bne     call_net_entry;"
 		/* call original method  */
 		"dmb     ish;"
 	"try_dec_lock:"
@@ -65,11 +65,11 @@ __attribute__((naked))
 		"cmp     r1, #0;"
 		"bne     try_dec_lock;"
 		"dmb     ish;"
-		"ldr   r5, OldProc;"
-		"b     TRAMPOLINE_EXIT;"
+		"ldr     r5, OldProc;"
+		"b       trampoline_exit;"
 
 		/* call hook handler or original method... */
-	"CALL_NET_ENTRY:"
+	"call_net_entry:"
 
 		"adr     r0, start;" /* Hook handle (only a position hint) */
 		"add     r2, sp, #0x6c;" /* original sp (address of return address)*/
@@ -79,7 +79,7 @@ __attribute__((naked))
 
 		/* should call original method?      */
 		"cmp     r0, #0;"
-		"bne     CALL_HOOK_HANDLER;"
+		"bne     call_hook_handler;"
 
 		/* call original method */ 
 		"ldr     r5, IsExecutedPtr;"
@@ -94,16 +94,16 @@ __attribute__((naked))
 		"dmb     ish;"
 
 		"ldr     r5, OldProc;"
-		"b       TRAMPOLINE_EXIT;"
+		"b       trampoline_exit;"
 
-	"CALL_HOOK_HANDLER:"
+	"call_hook_handler:"
 		/* call hook handler        */
 		"ldr     r5, NewProc;"
-		"adr     r4, CALL_NET_OUTRO;"
+		"adr     r4, call_net_outro;"
 		"str     r4, [sp, #0x6c];" /* store outro return to stack after hook handler is called     */
-		"b       TRAMPOLINE_EXIT;"
+		"b       trampoline_exit;"
 		/* this is where the handler returns... */
-	"CALL_NET_OUTRO:"
+	"call_net_outro:"
 		"mov     r5, #0;"
 		"push    {r0, r1, r2, r3, r4, r5};" /* save return handler */
 		"add     r1, sp, #5*4;"
@@ -124,7 +124,7 @@ __attribute__((naked))
 		/* finally return to saved return address - the caller of this trampoline...  */
 		"bx      lr;"
 
-	"TRAMPOLINE_EXIT:"
+	"trampoline_exit:"
 		"mov     r12, r5;"
 		"vpop    {d0-d7};"
 		"pop     {r5, r6, r7, r8, r9, r10};"
@@ -210,7 +210,7 @@ try_inc_lock:
         stxr    w1, w0, [x10]
         cbnz    w1, try_inc_lock
         ldr     x1, NewProc
-        cbnz    x1, CALL_NET_ENTRY
+        cbnz    x1, call_net_entry
 /* call original method  */    
 try_dec_lock:       
         ldxr    w0, [x10]
@@ -218,17 +218,16 @@ try_dec_lock:
         stxr    w1, w0, [x10]
         cbnz    x1, try_dec_lock
         ldr     x10, OldProc
-        b       TRAMPOLINE_EXIT        
+        b       trampoline_exit        
 /* call hook handler or original method... */
-CALL_NET_ENTRY:
-
+call_net_entry:
         adr     x0, start /* call NET intro */
         add     x2, sp, #(10*8 + 8*16) + 8 /* original sp (address of return address)*/
         ldr     x1, [sp, #(10*8 + 8*16) + 8] /* return address (value stored in original sp) */
         ldr     x10, NETIntro  
         blr     x10 /* Hook->NETIntro(Hook, RetAddr, InitialSP)*/
 /* should call original method?      */        
-        cbnz    x0, CALL_HOOK_HANDLER
+        cbnz    x0, call_hook_handler
 
 /* call original method */
         ldr     x10, IsExecutedPtr
@@ -239,16 +238,16 @@ try_dec_lock2:
         cbnz    w1, try_dec_lock2
 
         ldr     x10, OldProc
-        b       TRAMPOLINE_EXIT
-CALL_HOOK_HANDLER:
+        b       trampoline_exit
+call_hook_handler:
 
 /* call hook handler        */
         ldr     x10, NewProc
-        adr     x4, CALL_NET_OUTRO /*adjust return address */
+        adr     x4, call_net_outro /*adjust return address */
         str     x4, [sp, #(10*8 + 8*16) + 8] /* store outro return to stack after hook handler is called     */    
-        b       TRAMPOLINE_EXIT
+        b       trampoline_exit
  /* this is where the handler returns... */
-CALL_NET_OUTRO:
+call_net_outro:
         mov     x10, #0
         sub     sp, sp, #(10*8 + 8*16)
         stp     q0, q1, [sp, #(0*16)]
@@ -288,7 +287,7 @@ try_dec_lock3:
 /* finally return to saved return address - the caller of this trampoline...  */       
         ret
 
-TRAMPOLINE_EXIT:
+trampoline_exit:
         ldp     q0, q1, [sp, #(0*16)]
         ldp     q2, q3, [sp, #(2*16)]
         ldp     q4, q5, [sp, #(4*16)]

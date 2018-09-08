@@ -1,6 +1,5 @@
 #include "detours.h"
 
-
 #if defined(DETOURS_X64) 
 __asm__ __volatile__
 (R"(.intel_syntax
@@ -56,7 +55,7 @@ IsExecutedPtr:
 	cmp qword ptr [rip + NewProc], 0
 
 	.byte 0x3E ## branch usually taken
-	jne CALL_NET_ENTRY
+	jne call_net_entry
 
 ###################################################################################### call original method
 		lea rax, [rip + IsExecutedPtr]
@@ -65,10 +64,10 @@ IsExecutedPtr:
 		dec qword ptr [rax]
 
 		lea rax, [rip + OldProc]
-		jmp TRAMPOLINE_EXIT
+		jmp trampoline_exit
 
 ###################################################################################### call hook handler or original method...
-CALL_NET_ENTRY:
+call_net_entry:
 
 
 ## call NET intro
@@ -82,7 +81,7 @@ CALL_NET_ENTRY:
 	test rax, rax
 
 	.byte 0x3E ## branch usually taken
-	jne CALL_HOOK_HANDLER
+	jne call_hook_handler
 
 	## call original method
 		lea rax, [rip + IsExecutedPtr]
@@ -91,20 +90,20 @@ CALL_NET_ENTRY:
 		dec qword ptr [rax]
 
 		lea rax, [rip + OldProc]
-		jmp TRAMPOLINE_EXIT
+		jmp trampoline_exit
 
-CALL_HOOK_HANDLER:
+call_hook_handler:
 ## adjust return address
-	lea rax, [rip + CALL_NET_OUTRO]
+	lea rax, [rip + call_net_outro]
 	## Here we are under the alignment trick.
 	mov r9, [rsp + 32 + 8 * 16 + 6 * 8 + 8] ## r9 = original rsp
 	mov qword ptr [r9], rax
 
 ## call hook handler
 	lea rax, [rip + NewProc]
-	jmp TRAMPOLINE_EXIT
+	jmp trampoline_exit
 
-CALL_NET_OUTRO: ## this is where the handler returns...
+call_net_outro: ## this is where the handler returns...
 
 ## call NET outro
 	## Here we are NOT under the alignment trick.
@@ -133,7 +132,7 @@ CALL_NET_OUTRO: ## this is where the handler returns...
 	ret
 
 ######################################################################################## generic outro for both cases...
-TRAMPOLINE_EXIT:
+trampoline_exit:
 
 	add rsp, 32 + 16 * 8
 	movups xmm7, [rsp - 8 * 16]
@@ -155,7 +154,7 @@ TRAMPOLINE_EXIT:
 	## Remove alignment trick: https://stackoverflow.com/a/9600102
 	mov rsp, [rsp + 8]
 
-	jmp qword ptr [rax] ## ATTENTION: In case of hook handler we will return to CALL_NET_OUTRO, otherwise to the caller...
+	jmp qword ptr [rax] ## ATTENTION: In case of hook handler we will return to call_net_outro, otherwise to the caller...
 
 ## outro signature, to automatically determine code size
 .globl trampoline_data_x64;
