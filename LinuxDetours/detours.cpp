@@ -1,9 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-//  Core Detours Functionality (detours.cpp of detours.lib)
+//  Core Detours Functionality
 //
 //
-
 
 #define _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE 1
 #include "types.h"
@@ -14,7 +13,6 @@
 #define DETOURS_INTERNAL
 
 #include "detours.h"
-//#include <glog/logging.h>
 
 #define NOTHROW
 
@@ -765,12 +763,11 @@ inline PBYTE detour_skip_jmp(PBYTE pbCode, PVOID *ppGlobals)
 		
 		ULONG Opcode = fetch_opcode(pbCode);
 
-		if ((Opcode & 0xe28F0000) == 0xe28F0000) {          // ADR r12, #xxxx //movw r12,#xxxx
+		if ((Opcode & 0xe28f0000) == 0xe28f0000) {          // adr r12, #xxxx
 			ULONG Opcode2 = fetch_opcode(pbCode + 4);
-
-			if ((Opcode2 & 0xe28C0000) == 0xe28C0000) {      // ADD r12, r12, #xxxx // movt r12,#xxxx
+			if ((Opcode2 & 0xe28c0000) == 0xe28c0000) {      // add r12, r12, #xxxx
 				ULONG Opcode3 = fetch_opcode(pbCode + 8);
-				if ((Opcode3 & 0xE5BC0000) == 0xE5BC0000) {                 // ldr  pc,[r12]
+				if ((Opcode3 & 0xe5bcf000) == 0xe5bcf000) {             // ldr  pc,[r12]
 					ULONG target = (Opcode2 << 12) & 0x000FFFFF;
 					PBYTE pbTarget = /*(PBYTE)(((Opcode2 << 12) & 0xf7000000) |
 									 ((Opcode2 << 1) & 0x08000000) |
@@ -1572,7 +1569,7 @@ static ULONG ___TrampolineSize = 0;
 
 #ifdef DETOURS_X64
 extern "C" {
-	extern void Trampoline_ASM_x64();
+	//extern void Trampoline_ASM_x64();
 	extern void* trampoline_data_x64;
 	extern void(*trampoline_template_x64)();
 }

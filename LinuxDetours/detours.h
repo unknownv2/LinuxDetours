@@ -1,11 +1,8 @@
 #pragma once
 /////////////////////////////////////////////////////////////////////////////
 //
-//  Core Detours Functionality (detours.h of detours.lib)
+//  Core Detours Functionality
 //
-//  Microsoft Research Detours Package, Version 4.0.1
-//
-//  Copyright (c) Microsoft Corporation.  All rights reserved.
 //
 
 #pragma once
