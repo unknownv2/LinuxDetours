@@ -729,7 +729,7 @@ void RtlSetLastError(LONG InCode, LONG InNtStatus, WCHAR* InMessage);
 typedef struct _RTL_SPIN_LOCK_
 {
 	pthread_mutex_t         Lock;
-	BOOL                 IsOwned;
+	BOOL                    IsOwned;
 }RTL_SPIN_LOCK;
 
 void RtlInitializeLock(RTL_SPIN_LOCK* InLock);

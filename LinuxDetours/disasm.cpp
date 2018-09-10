@@ -3541,10 +3541,11 @@ PVOID WINAPI DetourCopyInstruction(_In_opt_ PVOID pDst,
 #define DETOURS_PFUNC_TO_PBYTE(p)  ((PBYTE)(((ULONG_PTR)(p)) & ~(ULONG_PTR)1))
 #define DETOURS_PBYTE_TO_PFUNC(p)  ((PBYTE)(((ULONG_PTR)(p)) | (ULONG_PTR)1))
 
-#define c_PCAdjust  4       // The PC value of an instruction is the PC address plus 4.
-#define c_PC        15      // The register number for the Program Counter
-#define c_LR        14      // The register number for the Link Register
-#define c_SP        13      // The register number for the Stack Pointer
+#define c_PCAdjust    4       // The PC value of an instruction is the PC address plus 4.
+#define c_PCAdjust32  8       // The PC value of an ARM32 instruction is the PC address plus 8.
+#define c_PC          15      // The register number for the Program Counter
+#define c_LR          14      // The register number for the Link Register
+#define c_SP          13      // The register number for the Stack Pointer
 #define c_NOP32       0xe1a00000  // A nop instruction
 #define c_BREAK32     0xe7f001f0  // A nop instruction
 
@@ -3753,6 +3754,42 @@ public:
 		DWORD OpCode : 12;
 	};
 
+	struct DataProcessing
+	{
+		DWORD Operand2 : 12; // 0..11
+		DWORD DestinationRegister : 4; // 12..15
+		DWORD SourceRegister : 4; // 16..19
+		DWORD SetConditionCode : 1; // 20
+		DWORD OpCode : 4; // 21..24
+
+		// ImmOperand :
+		// Case 0 : operand 2 is a register
+		// 0..3 = Rm, 2nd operaend register
+		// 4..11 = Shift, shift applied to Rm
+		// Case 1: operand 2 is an immediate value
+		// 0...7 = Imm, unsigned 8 bit immediate value
+		// 8..11 = Rotate, shift applied to Imm
+		DWORD ImmOperand : 1; // 25
+
+		DWORD Padding : 2; // 26..27
+		DWORD Condition : 4; // 28..31
+	};
+
+	struct SingleDataTransfer
+	{
+		DWORD Offset : 12; // 0..11
+		DWORD DestinationRegister : 4; // 12..15
+		DWORD BaseRegister : 4; // 16..19
+		DWORD LoadStore : 1; // 20
+		DWORD WriteBack : 1; // 21
+		DWORD ByteWord : 1; // 22
+		DWORD UpDown : 1; // 23
+		DWORD PrePostIndexing : 1; // 24
+		DWORD ImmediateOffset : 1; // 25
+		DWORD Padding : 2; // 26..27
+		DWORD Condition : 4; // 28..31
+
+	};
 protected:
 	BYTE    PureCopy16(BYTE* pSource, BYTE* pDest);
 	BYTE    PureCopy32(BYTE* pSource, BYTE* pDest);
@@ -3793,7 +3830,7 @@ protected:
 protected:
 	ULONG GetLongInstruction(BYTE* pSource)
 	{
-		return (((PUSHORT)pSource)[0] << 16) | (((PUSHORT)pSource)[1]);
+		return *(ULONG*)pSource;
 	}
 
 	BYTE EmitLongInstruction(PUSHORT& pDstInst, ULONG instruction)
@@ -4796,10 +4833,13 @@ CDetourDis32::CDetourDis32()
 	m_pbPool = NULL;
 	m_lExtra = 0;
 }
+
 // placeholder for determining wether to relocate instruction
 static inline bool IsRelInstruction(DWORD opcode)
 {
-	return false;
+	return (opcode & 0x0c000000) == 0x04000000
+		&& (opcode & 0xf0000000) != 0xf0000000
+		&& (opcode & 0x000f0000) == 0x000f0000;
 }
 
 PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
@@ -4818,15 +4858,16 @@ PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
 	// Make sure the constant pool is 32-bit aligned.
 	m_pbPool -= ((ULONG_PTR)m_pbPool) & 3;
 	if (IsRelInstruction(*(DWORD*)pSrc)) {
+		ULONG opCode = GetLongInstruction(pSrc);
+		SingleDataTransfer&  dp = (SingleDataTransfer&)opCode;
 		REFCOPYENTRY pEntry = &s_rceCopyTable[pSrc[1] >> 3];
 		ULONG size = (this->*pEntry->pfCopy)(pSrc, pDst);
 
 		pSrc += size;
 	}
 	else {
-		ULONG size = PureCopy32(pSrc, pDst);
-
-		pSrc += size;
+		// increment pSrc by the size of the 32-bit instruction
+		pSrc += PureCopy32(pSrc, pDst);
 	}
 	// If the target is needed, store our target
 	if (ppTarget) {
