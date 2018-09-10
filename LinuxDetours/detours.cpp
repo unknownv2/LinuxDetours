@@ -93,28 +93,28 @@ const ULONG DETOUR_TRAMPOLINE_CODE_SIZE = 128;
 
 struct _DETOUR_TRAMPOLINE
 {
-	BYTE            rbCode[30];     // target code + jmp to pbRemain
-	BYTE            cbCode;         // size of moved target code.
-	BYTE            cbCodeBreak;    // padding to make debugging easier.
-	BYTE            rbRestore[22];  // original target code.
-	BYTE            cbRestore;      // size of original target code.
-	BYTE            cbRestoreBreak; // padding to make debugging easier.
-	_DETOUR_ALIGN   rAlign[8];      // instruction alignment array.
-	PBYTE           pbRemain;       // first instruction after moved code. [free list]
-	PBYTE           pbDetour;       // first instruction of detour function.
-	HOOK_ACL        LocalACL;
-	void*           Callback;
-	ULONG           HLSIndex;
-	ULONG           HLSIdent;
+	BYTE               rbCode[30];     // target code + jmp to pbRemain
+	BYTE               cbCode;         // size of moved target code.
+	BYTE               cbCodeBreak;    // padding to make debugging easier.
+	BYTE               rbRestore[22];  // original target code.
+	BYTE               cbRestore;      // size of original target code.
+	BYTE               cbRestoreBreak; // padding to make debugging easier.
+	_DETOUR_ALIGN      rAlign[8];      // instruction alignment array.
+	PBYTE              pbRemain;       // first instruction after moved code. [free list]
+	PBYTE              pbDetour;       // first instruction of detour function.
+	HOOK_ACL           LocalACL;
+	void*              Callback;
+	ULONG              HLSIndex;
+	ULONG              HLSIdent;
 	TRACED_HOOK_HANDLE OutHandle; // handle returned to user  
-	void*           Trampoline;
-	INT             IsExecuted;
-	void*           HookIntro; // . NET Intro function  
-	UCHAR*          OldProc;  // old target function      
-	void*           HookProc; // function we detour to
-	void*           HookOutro;   // .NET Outro function  
-	int*            IsExecutedPtr;
-	BYTE            rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
+	void*              Trampoline;
+	INT                IsExecuted;
+	void*              HookIntro; // . NET Intro function  
+	UCHAR*             OldProc;  // old target function      
+	void*              HookProc; // function we detour to
+	void*              HookOutro;   // .NET Outro function  
+	int*               IsExecutedPtr;
+	BYTE               rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
 };
 
 C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 764);
@@ -319,29 +319,29 @@ struct _DETOUR_TRAMPOLINE
 {
 	// An X64 instuction can be 15 bytes long.
 	// In practice 11 seems to be the limit.
-	BYTE            rbCode[30];     // target code + jmp to pbRemain.
-	BYTE            cbCode;         // size of moved target code.
-	BYTE            cbCodeBreak;    // padding to make debugging easier.
-	BYTE            rbRestore[30];  // original target code.
-	BYTE            cbRestore;      // size of original target code.
-	BYTE            cbRestoreBreak; // padding to make debugging easier.
-	_DETOUR_ALIGN   rAlign[8];      // instruction alignment array.
-	PBYTE           pbRemain;       // first instruction after moved code. [free list]
-	PBYTE           pbDetour;       // first instruction of detour function.
-	BYTE            rbCodeIn[8];    // jmp [pbDetour]
-	HOOK_ACL        LocalACL;
-	void*           Callback;
-	ULONG           HLSIndex;
-	ULONG           HLSIdent;
+	BYTE               rbCode[30];     // target code + jmp to pbRemain.
+	BYTE               cbCode;         // size of moved target code.
+	BYTE               cbCodeBreak;    // padding to make debugging easier.
+	BYTE               rbRestore[30];  // original target code.
+	BYTE               cbRestore;      // size of original target code.
+	BYTE               cbRestoreBreak; // padding to make debugging easier.
+	_DETOUR_ALIGN      rAlign[8];      // instruction alignment array.
+	PBYTE              pbRemain;       // first instruction after moved code. [free list]
+	PBYTE              pbDetour;       // first instruction of detour function.
+	BYTE               rbCodeIn[8];    // jmp [pbDetour]
+	HOOK_ACL           LocalACL;
+	void*              Callback;
+	ULONG              HLSIndex;
+	ULONG              HLSIdent;
 	TRACED_HOOK_HANDLE OutHandle; // handle returned to user  
-	void*           Trampoline;
-	INT             IsExecuted;
-	void*           HookIntro; // . NET Intro function  
-	UCHAR*          OldProc;  // old target function      
-	void*           HookProc; // function we detour to
-	void*           HookOutro;   // .NET Outro function  
-	int*            IsExecutedPtr;
-	BYTE            rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
+	void*              Trampoline;
+	INT                IsExecuted;
+	void*              HookIntro; // . NET Intro function  
+	UCHAR*             OldProc;  // old target function      
+	void*              HookProc; // function we detour to
+	void*              HookOutro;   // .NET Outro function  
+	int*               IsExecutedPtr;
+	BYTE               rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
 };
 
 //C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 968);
@@ -867,27 +867,27 @@ struct _DETOUR_TRAMPOLINE
 	//
 	// The number is rounded up to 128. m_rbScratchDst should match this.
 	//
-	BYTE            rbCode[128];     // target code + jmp to pbRemain
-	BYTE            cbCode;         // size of moved target code.
-	BYTE            cbCodeBreak[3]; // padding to make debugging easier.
-	BYTE            rbRestore[24];  // original target code.
-	BYTE            cbRestore;      // size of original target code.
-	BYTE            cbRestoreBreak[3]; // padding to make debugging easier.
-	_DETOUR_ALIGN   rAlign[8];      // instruction alignment array.
-	PBYTE           pbRemain;       // first instruction after moved code. [free list]
-	PBYTE           pbDetour;       // first instruction of detour function.
-	HOOK_ACL        LocalACL;
-	void*           Callback;
-	ULONG           HLSIndex;
-	ULONG           HLSIdent;
+	BYTE               rbCode[128];     // target code + jmp to pbRemain
+	BYTE               cbCode;         // size of moved target code.
+	BYTE               cbCodeBreak[3]; // padding to make debugging easier.
+	BYTE               rbRestore[24];  // original target code.
+	BYTE               cbRestore;      // size of original target code.
+	BYTE               cbRestoreBreak[3]; // padding to make debugging easier.
+	_DETOUR_ALIGN      rAlign[8];      // instruction alignment array.
+	PBYTE              pbRemain;       // first instruction after moved code. [free list]
+	PBYTE              pbDetour;       // first instruction of detour function.
+	HOOK_ACL           LocalACL;
+	void*              Callback;
+	ULONG              HLSIndex;
+	ULONG              HLSIdent;
 	TRACED_HOOK_HANDLE OutHandle; // handle returned to user  
-	void*           Trampoline;
-	void*           HookIntro; // . NET Intro function  
-	UCHAR*          OldProc;  // old target function      
-	void*           HookProc; // function we detour to
-	void*           HookOutro;   // .NET Outro function  
-	int*            IsExecutedPtr;
-	BYTE            rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
+	void*              Trampoline;
+	void*              HookIntro; // . NET Intro function  
+	UCHAR*             OldProc;  // old target function      
+	void*              HookProc; // function we detour to
+	void*              HookOutro;   // .NET Outro function  
+	int*               IsExecutedPtr;
+	BYTE               rbTrampolineCode[DETOUR_TRAMPOLINE_CODE_SIZE];
 };
 
 //C_ASSERT(sizeof(_DETOUR_TRAMPOLINE) == 1128);
