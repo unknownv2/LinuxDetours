@@ -4,6 +4,12 @@
 __attribute__((naked))
  void trampoline_template_arm_func() {
 	asm(
+
+".global trampoline_template_thumb;"
+".global trampoline_template_arm;"
+".global trampoline_data_arm;"
+".global trampoline_data_thumb;"
+
 	"NETIntro:"        /* .NET Barrier Intro Function */
 		".byte 0;"
 		".byte 0;"
@@ -30,14 +36,14 @@ __attribute__((naked))
 		".byte 0;"
 		".byte 0;"
 
-	".global trampoline_template_thumb;"
 	"trampoline_template_thumb:"
 #if not defined(DETOURS_ARM32)
 	".thumb_func;"
 		"bx pc;"
 		"mov r8, r8;" // padding since pc is set to (current_instruction + 4) in Thumb Mode
 #endif
-	".global trampoline_template_arm;"
+
+
 	"trampoline_template_arm:"
 	".code 32;"
 	"start:"
@@ -130,9 +136,7 @@ __attribute__((naked))
 		"pop     {r5, r6, r7, r8, r9, r10};"
 		"pop     {r0, r1, r2, r3, r4, lr};"
 		"bx      r12 ; mov     pc, r12;"
-	".global trampoline_data_arm;"
 	"trampoline_data_arm:"
-	".global trampoline_data_thumb;"
 	"trampoline_data_thumb:"
 		".word 0x12345678;"
 	);
@@ -141,6 +145,10 @@ __attribute__((naked))
 __attribute__((naked))
 void trampoline_template_arm_64_func() {
 	asm(R"(
+    
+ .global trampoline_template_arm64
+ .global trampoline_data_arm_64
+
 NETIntro:        /* .NET Barrier Intro Function */
         .byte 0
         .byte 0
@@ -186,9 +194,9 @@ IsExecutedPtr:  /* Count of times trampoline was executed */
         .byte 0
         .byte 0
         .byte 0
-        
- .global trampoline_template_arm64
-trampoline_template_arm64:    
+
+trampoline_template_arm64:  
+  
 start:     
         stp     x29, x30, [sp, #-16]!
         mov     x29, sp
@@ -300,9 +308,9 @@ trampoline_exit:
         mov     sp, x29
         ldp     x29, x30, [sp], #16
         br      x10
+
 /* outro signature, to automatically determine code size   */     
 trampoline_data_arm_64:
-.global trampoline_data_arm_64
 		.word 0x12345678
 )");
 }

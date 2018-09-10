@@ -4,24 +4,29 @@
 __asm__ __volatile__
 (R"(.intel_syntax
 .globl Trampoline_ASM_x64
+.globl trampoline_template_x64
+.globl trampoline_data_x64
+
 Trampoline_ASM_x64:
+
 NETIntro:
-	## void*			NETEntry## // fixed 0 (0)
+	## void*			NETEntry // fixed 0 (0)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0
 OldProc:
-	## void*			NETEntry## // fixed 0 (0)
+	## void*			NETEntry // fixed 0 (0)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0
 NewProc:
-	## void*			NETEntry## // fixed 0 (0)
+	## void*			NETEntry // fixed 0 (0)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0
 NETOutro:
-	## void*			NETEntry## // fixed 0 (0)
+	## void*			NETEntry // fixed 0 (0)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0
 IsExecutedPtr:
-	## void*			NETEntry## // fixed 0 (0)
+	## void*			NETEntry // fixed 0 (0)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0
-.globl trampoline_template_x64
-	trampoline_template_x64:
+
+trampoline_template_x64:
+
 	push rsp
 	push qword ptr [rsp]
 	and rsp, 0xFFFFFFFFFFFFFFF0
@@ -157,13 +162,13 @@ trampoline_exit:
 	jmp qword ptr [rax] ## ATTENTION: In case of hook handler we will return to call_net_outro, otherwise to the caller...
 
 ## outro signature, to automatically determine code size
-.globl trampoline_data_x64;
-	trampoline_data_x64:
+
+trampoline_data_x64:
 	.byte 78h
 	.byte 56h
 	.byte 34h
 	.byte 12h
-##Trampoline_ASM_x64 ENDP
+
 )");
 
 #endif
