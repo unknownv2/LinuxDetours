@@ -31,49 +31,57 @@ void RtlZeroMemory(
 }
 void RtlInitializeLock(RTL_SPIN_LOCK* OutLock)
 {
-	RtlZeroMemory(OutLock, sizeof(RTL_SPIN_LOCK));
+	if (OutLock != NULL) {
+		RtlZeroMemory(OutLock, sizeof(RTL_SPIN_LOCK));
 
-	//create mutex attribute variable
-	pthread_mutexattr_t mAttr;
+		//create mutex attribute variable
+		pthread_mutexattr_t mAttr;
 
-	// setup recursive mutex for mutex attribute
-	pthread_mutexattr_settype(&mAttr, PTHREAD_MUTEX_RECURSIVE);
+		// setup recursive mutex for mutex attribute
+		pthread_mutexattr_settype(&mAttr, PTHREAD_MUTEX_RECURSIVE);
 
-	// Use the mutex attribute to create the mutex
-	pthread_mutex_init(&OutLock->Lock, &mAttr);
+		// Use the mutex attribute to create the mutex
+		pthread_mutex_init(&OutLock->Lock, &mAttr);
 
-	// Mutex attribute can be destroy after initializing the mutex variable
-	pthread_mutexattr_destroy(&mAttr);
+		// Mutex attribute can be destroy after initializing the mutex variable
+		pthread_mutexattr_destroy(&mAttr);
+	}
 }
 
 void RtlAcquireLock(RTL_SPIN_LOCK* InLock)
 {
-	pthread_mutex_lock(&InLock->Lock);
+	if (InLock != NULL) {
+		pthread_mutex_lock(&InLock->Lock);
 
-	DETOUR_ASSERT(!InLock->IsOwned, L"barrier.cpp - !InLock->IsOwned");
+		DETOUR_ASSERT(!InLock->IsOwned, L"barrier.cpp - !InLock->IsOwned");
 
-	InLock->IsOwned = TRUE;
+		InLock->IsOwned = TRUE;
+	}
 }
 
 void RtlReleaseLock(RTL_SPIN_LOCK* InLock)
 {
-	DETOUR_ASSERT(InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
+	if (InLock != NULL) {
+		DETOUR_ASSERT(InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
 
-	InLock->IsOwned = FALSE;
+		InLock->IsOwned = FALSE;
 
-	pthread_mutex_unlock(&InLock->Lock);
+		pthread_mutex_unlock(&InLock->Lock);
+	}
 }
 
 void RtlDeleteLock(RTL_SPIN_LOCK* InLock)
 {
-	DETOUR_ASSERT(!InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
+	if (InLock != NULL) {
+		DETOUR_ASSERT(!InLock->IsOwned, L"barrier.cpp - InLock->IsOwned");
 
-	pthread_mutex_destroy(&InLock->Lock);
+		pthread_mutex_destroy(&InLock->Lock);
+	}
 }
 
 void RtlSleep(ULONG InTimeout)
 {
-	sleep((unsigned int)InTimeout);
+	sleep(InTimeout);
 }
 
 
