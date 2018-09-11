@@ -3538,16 +3538,10 @@ PVOID WINAPI DetourCopyInstruction(_In_opt_ PVOID pDst,
 		plExtra);
 }*/
 //#else 
-#define DETOURS_PFUNC_TO_PBYTE(p)  ((PBYTE)(((ULONG_PTR)(p)) & ~(ULONG_PTR)1))
-#define DETOURS_PBYTE_TO_PFUNC(p)  ((PBYTE)(((ULONG_PTR)(p)) | (ULONG_PTR)1))
 
-#define c_PCAdjust    4       // The PC value of an instruction is the PC address plus 4.
-#define c_PCAdjust32  8       // The PC value of an ARM32 instruction is the PC address plus 8.
-#define c_PC          15      // The register number for the Program Counter
-#define c_LR          14      // The register number for the Link Register
-#define c_SP          13      // The register number for the Stack Pointer
-#define c_NOP32       0xe1a00000  // A nop instruction
-#define c_BREAK32     0xe7f001f0  // A nop instruction
+#define c_PCAdjust32    8           // The PC value of an ARM32 instruction is the PC address plus 8.
+#define c_NOP32         0xe1a00000  // A nop instruction
+#define c_BREAK32       0xe7f001f0  // A nop instruction
 
 class CDetourDis32
 {
@@ -3775,6 +3769,7 @@ public:
 		DWORD Condition : 4; // 28..31
 	};
 
+	// LDR, STR
 	struct SingleDataTransfer
 	{
 		DWORD Offset : 12; // 0..11
@@ -3788,16 +3783,36 @@ public:
 		DWORD ImmediateOffset : 1; // 25
 		DWORD Padding : 2; // 26..27
 		DWORD Condition : 4; // 28..31
+	};
+
+	struct DirectBranch
+	{
+		DWORD Offset : 24; // 0 .. 23
+		DWORD Link : 1; // 24
+		DWORD Padding : 3; // 25..27
+		DWORD Condition : 4; // 28..31
+	};
+
+	struct BranchAndExchange
+	{
+		DWORD OperandRegister : 4; // 0 .. 3
+		DWORD Padding : 24; // 4..27
+		DWORD Condition : 4; // 28..31
+	};
+
+	// if using PC as source register, 
+	// target address = PC + 12, so subtract 8
+	// ex: 
+	// HERE:
+	//	 strh = r5, [pc, #(FRED-HERE-8)]
+	// FRED:
+	struct HalfWordSignedDataTransfer
+	{
 
 	};
+
 protected:
-	BYTE    PureCopy16(BYTE* pSource, BYTE* pDest);
 	BYTE    PureCopy32(BYTE* pSource, BYTE* pDest);
-	BYTE    CopyMiscellaneous16(BYTE* pSource, BYTE* pDest);
-	BYTE    CopyConditionalBranchOrOther16(BYTE* pSource, BYTE* pDest);
-	BYTE    CopyUnConditionalBranch16(BYTE* pSource, BYTE* pDest);
-	BYTE    CopyLiteralLoad16(BYTE* pSource, BYTE* pDest);
-	BYTE    CopyBranchExchangeOrDataProcessing16(BYTE* pSource, BYTE* pDest);
 	BYTE    CopyBranch24(BYTE* pSource, BYTE* pDest);
 	BYTE    CopyBranchOrMiscellaneous32(BYTE* pSource, BYTE* pDest);
 	BYTE    CopyLiteralLoad32(BYTE* pSource, BYTE* pDest);
@@ -3819,12 +3834,12 @@ protected:
 	ULONG   EncodeBranch24(ULONG originalOpCode, LONG delta, BOOL fLink);
 	LONG    DecodeLiteralLoad8(ULONG instruction);
 	LONG    DecodeLiteralLoad12(ULONG instruction);
-	BYTE    EmitLiteralLoad8(PUSHORT& pDest, BYTE targetRegister, PBYTE pLiteral);
-	BYTE    EmitLiteralLoad12(PUSHORT& pDest, BYTE targetRegister, PBYTE pLiteral);
-	BYTE    EmitImmediateRegisterLoad32(PUSHORT& pDest, BYTE reg);
-	BYTE    EmitImmediateRegisterLoad16(PUSHORT& pDest, BYTE reg);
-	BYTE    EmitLongLiteralLoad(PUSHORT& pDest, BYTE reg, PVOID pTarget);
-	BYTE    EmitLongBranch(PUSHORT& pDest, PVOID pTarget);
+	BYTE    EmitLiteralLoad8(PDWORD& pDest, BYTE targetRegister, PBYTE pLiteral);
+	BYTE    EmitLiteralLoad12(PDWORD& pDest, BYTE targetRegister, PBYTE pLiteral);
+	BYTE    EmitImmediateRegisterLoad32(PDWORD& pDest, BYTE reg);
+	BYTE    EmitImmediateRegisterLoad16(PDWORD& pDest, BYTE reg);
+	BYTE    EmitLongLiteralLoad(PDWORD& pDest, BYTE reg, PVOID pTarget);
+	BYTE    EmitLongBranch(PDWORD& pDest, PVOID pTarget);
 	USHORT  CalculateExtra(BYTE sourceLength, BYTE* pDestStart, BYTE* pDestEnd);
 
 protected:
@@ -3833,17 +3848,17 @@ protected:
 		return *(ULONG*)pSource;
 	}
 
-	BYTE EmitLongInstruction(PUSHORT& pDstInst, ULONG instruction)
+	BYTE EmitLongInstruction(PDWORD& pDstInst, ULONG instruction)
 	{
 		*pDstInst++ = (USHORT)(instruction >> 16);
 		*pDstInst++ = (USHORT)instruction;
 		return sizeof(ULONG);
 	}
 
-	BYTE EmitShortInstruction(PUSHORT& pDstInst, USHORT instruction)
+	BYTE EmitShortInstruction(PDWORD& pDstInst, DWORD instruction)
 	{
 		*pDstInst++ = instruction;
-		return sizeof(USHORT);
+		return sizeof(DWORD);
 	}
 
 	PBYTE Align4(PBYTE pValue)
@@ -3853,15 +3868,15 @@ protected:
 
 	PBYTE CalculateTarget(PBYTE pSource, LONG delta)
 	{
-		return (pSource + delta + c_PCAdjust);
+		return (pSource + delta + c_PCAdjust32);
 	}
 
 	LONG CalculateNewDelta(PBYTE pTarget, BYTE* pDest)
 	{
-		return (LONG)(pTarget - (pDest + c_PCAdjust));
+		return (LONG)(pTarget - (pDest + c_PCAdjust32));
 	}
 
-	BYTE    EmitAdd32(PUSHORT& pDstInst, BYTE op1Reg, BYTE op2Reg, BYTE dstReg, BYTE shiftAmount)
+	BYTE    EmitAdd32(PDWORD& pDstInst, BYTE op1Reg, BYTE op2Reg, BYTE dstReg, BYTE shiftAmount)
 	{
 		Shift& shift = (Shift&)(shiftAmount);
 		const BYTE shiftType = 0x00; // LSL
@@ -3870,7 +3885,7 @@ protected:
 		return EmitLongInstruction(pDstInst, (ULONG&)add);
 	}
 
-	BYTE    EmitLogicalShiftLeft32(PUSHORT& pDstInst, BYTE srcReg, BYTE dstReg, BYTE shiftAmount)
+	BYTE    EmitLogicalShiftLeft32(PDWORD& pDstInst, BYTE srcReg, BYTE dstReg, BYTE shiftAmount)
 	{
 		Shift& shift = (Shift&)(shiftAmount);
 		LogicalShiftLeft32 shiftLeft = { srcReg, 0x00, shift.Imm2, dstReg, shift.Imm3, 0x1E,
@@ -3878,7 +3893,7 @@ protected:
 		return EmitLongInstruction(pDstInst, (ULONG&)shiftLeft);
 	}
 
-	BYTE    EmitStoreImmediate12(PUSHORT& pDstInst, BYTE srcReg, BYTE baseReg, USHORT offset)
+	BYTE    EmitStoreImmediate12(PDWORD& pDstInst, BYTE srcReg, BYTE baseReg, USHORT offset)
 	{
 		StoreImmediate12 store = { offset, srcReg, baseReg, 0xF8C };
 		return EmitLongInstruction(pDstInst, (ULONG&)store);
@@ -3891,7 +3906,7 @@ protected:
 
 	BYTE    m_rbScratchDst[64];
 
-	static const COPYENTRY s_rceCopyTable[33];
+	static const COPYENTRY s_rceCopyTable[0x5B];
 };
 
 LONG CDetourDis32::DecodeBranch5(ULONG opcode)
@@ -4077,7 +4092,7 @@ LONG CDetourDis32::DecodeLiteralLoad8(ULONG instruction)
 	return (LONG&)target;
 }
 
-BYTE CDetourDis32::EmitLiteralLoad8(PUSHORT& pDest, BYTE targetRegister, PBYTE pLiteral)
+BYTE CDetourDis32::EmitLiteralLoad8(PDWORD& pDest, BYTE targetRegister, PBYTE pLiteral)
 {
 	// Note: We add 2 (which gets rounded down) because literals must be 32-bit
 	//       aligned, but the ldr can be 16-bit aligned.
@@ -4092,16 +4107,16 @@ BYTE CDetourDis32::EmitLiteralLoad8(PUSHORT& pDest, BYTE targetRegister, PBYTE p
 
 LONG CDetourDis32::DecodeLiteralLoad12(ULONG instruction)
 {
-	LiteralLoad12& load = (LiteralLoad12&)(instruction);
+	SingleDataTransfer& load = (SingleDataTransfer&)(instruction);
 
 	LiteralLoad12Target target;
 	ZeroMemory(&target, sizeof(target));
-	target.Imm12 = load.Imm12;
+	target.Imm12 = load.Offset;
 
 	return (LONG&)target;
 }
 
-BYTE CDetourDis32::EmitLiteralLoad12(PUSHORT& pDest, BYTE targetRegister, PBYTE pLiteral)
+BYTE CDetourDis32::EmitLiteralLoad12(PDWORD& pDest, BYTE targetRegister, PBYTE pLiteral)
 {
 	// Note: We add 2 (which gets rounded down) because literals must be 32-bit
 	//       aligned, but the ldr can be 16-bit aligned.
@@ -4109,25 +4124,26 @@ BYTE CDetourDis32::EmitLiteralLoad12(PUSHORT& pDest, BYTE targetRegister, PBYTE 
 	LONG relative = ((newDelta > 0 ? newDelta : -newDelta) & 0xFFF);
 
 	LiteralLoad12Target& target = (LiteralLoad12Target&)(relative);
-	target.Imm12 -= target.Imm12 & 3;
-	LiteralLoad12 load = { target.Imm12, targetRegister, 0x5F, (DWORD)(newDelta > 0),  0xF8 };
+	//target.Imm12 -= target.Imm12 & 3;
+	//LiteralLoad12 load = { target.Imm12, targetRegister, 0x5F, (DWORD)(newDelta > 0),  0xF8 };
+	SingleDataTransfer load2 = { target.Imm12, targetRegister, c_PC, 1, 0, 0, 0, 1, 0, 0x01, 0x0E };
 
-	return EmitLongInstruction(pDest, (ULONG&)load);
+	return EmitLongInstruction(pDest, (ULONG&)load2);
 }
 
-BYTE CDetourDis32::EmitImmediateRegisterLoad32(PUSHORT& pDest, BYTE reg)
+BYTE CDetourDis32::EmitImmediateRegisterLoad32(PDWORD& pDest, BYTE reg)
 {
 	ImmediateRegisterLoad32 load = { 0, reg, reg, 0xF8D };
 	return EmitLongInstruction(pDest, (ULONG&)load);
 }
 
-BYTE CDetourDis32::EmitImmediateRegisterLoad16(PUSHORT& pDest, BYTE reg)
+BYTE CDetourDis32::EmitImmediateRegisterLoad16(PDWORD& pDest, BYTE reg)
 {
 	ImmediateRegisterLoad16 load = { reg, reg, 0x680 >> 2 };
 	return EmitShortInstruction(pDest, (USHORT&)load);
 }
 
-BYTE CDetourDis32::EmitLongLiteralLoad(PUSHORT& pDest, BYTE targetRegister, PVOID pTarget)
+BYTE CDetourDis32::EmitLongLiteralLoad(PDWORD& pDest, BYTE targetRegister, PVOID pTarget)
 {
 	*--((PULONG&)m_pbPool) = (ULONG)(size_t)pTarget;
 
@@ -4149,18 +4165,13 @@ BYTE CDetourDis32::EmitLongLiteralLoad(PUSHORT& pDest, BYTE targetRegister, PVOI
 	return size;
 }
 
-BYTE CDetourDis32::EmitLongBranch(PUSHORT& pDest, PVOID pTarget)
+BYTE CDetourDis32::EmitLongBranch(PDWORD& pDest, PVOID pTarget)
 {
 	// Emit a long literal load into PC
 	BYTE size = EmitLongLiteralLoad(pDest, c_PC, DETOURS_PBYTE_TO_PFUNC(pTarget));
 	return size;
 }
 
-BYTE CDetourDis32::PureCopy16(BYTE* pSource, BYTE* pDest)
-{
-	*(USHORT *)pDest = *(USHORT *)pSource;
-	return sizeof(USHORT);
-}
 
 BYTE CDetourDis32::PureCopy32(BYTE* pSource, BYTE* pDest)
 {
@@ -4174,204 +4185,9 @@ USHORT CDetourDis32::CalculateExtra(BYTE sourceLength, BYTE* pDestStart, BYTE* p
 	return static_cast<USHORT>((destinationLength > sourceLength) ? (destinationLength - sourceLength) : 0);
 }
 
-BYTE CDetourDis32::CopyMiscellaneous16(BYTE* pSource, BYTE* pDest)
-{
-	USHORT instruction = *(PUSHORT)(pSource);
 
-	// Compare and branch imm5 (CBZ, CBNZ)
-	if ((instruction & 0x100) && !(instruction & 0x400)) { // (1011x0x1xxxxxxxx)
-		LONG oldDelta = DecodeBranch5(instruction);
-		PBYTE pTarget = CalculateTarget(pSource, oldDelta);
-		m_pbTarget = pTarget;
 
-		LONG newDelta = CalculateNewDelta(pTarget, pDest);
-		instruction = EncodeBranch5(instruction, newDelta);
-
-		if (instruction) {
-			// Copy the 16 bit instruction over
-			*(PUSHORT)(pDest) = instruction;
-			return sizeof(USHORT); // The source instruction was 16 bits
-		}
-
-		// If that fails, re-encode with 'conditional branch' logic, without using the condition flags
-		// For example, cbz r2,+0x56 (0x90432) becomes:
-		//
-		//  001df73a b92a     cbnz        r2,001df748
-		//  001df73c e002     b           001df744
-		//  001df73e bf00     nop
-		//  001df740 0432     dc.h        0432
-		//  001df742 0009     dc.h        0009
-		//  001df744 f85ff008 ldr         pc,=0x90432
-		//
-
-		// Store where we will be writing our conditional branch, and move past it so we can emit a long branch
-		PUSHORT pDstInst = (PUSHORT)(pDest);
-		PUSHORT pConditionalBranchInstruction = pDstInst++;
-
-		// Emit the long branch instruction
-		BYTE longBranchSize = EmitLongBranch(pDstInst, pTarget);
-
-		// Invert the CBZ/CBNZ instruction to move past our 'long branch' if the inverse comparison succeeds
-		// Write the CBZ/CBNZ instruction *before* the long branch we emitted above
-		// This had to be done out of order, since the size of a long branch can vary due to alignment restrictions
-		instruction = EncodeBranch5(*(PUSHORT)(pSource), longBranchSize - c_PCAdjust + sizeof(USHORT));
-		Branch5& branch = (Branch5&)(instruction);
-		branch.OpCode = (branch.OpCode & 0x02) ? 0x2C : 0x2E; // Invert the CBZ/CBNZ comparison
-		*pConditionalBranchInstruction = instruction;
-
-		// Compute the extra space needed for the branch sequence
-		m_lExtra = CalculateExtra(sizeof(USHORT), pDest, (BYTE*)(pDstInst));
-		return sizeof(USHORT); // The source instruction was 16 bits
-	}
-
-	// If-Then Instruction (IT)
-	if ((instruction >> 8 == 0xBF) && (instruction & 0xF)) { //(10111111xxxx(mask != 0b0000))
-															 // ToDo: Implement IT handler
-		ASSERT(false);
-		return sizeof(USHORT);
-	}
-
-	// ADD/SUB, SXTH, SXTB, UXTH, UXTB, CBZ, CBNZ, PUSH, POP, REV, REV15, REVSH, NOP, YIELD, WFE, WFI, SEV, etc.
-	return PureCopy16(pSource, pDest);
-}
-
-BYTE CDetourDis32::CopyConditionalBranchOrOther16(BYTE* pSource, BYTE* pDest)
-{
-	USHORT instruction = *(PUSHORT)(pSource);
-
-	// Could be a conditional branch, an Undefined instruction or a Service System Call
-	// Only the former needs special logic
-	if ((instruction & 0xE00) != 0xE00) { // 1101(!=111x)xxxxxxxx
-		LONG oldDelta = DecodeBranch8(instruction);
-		PBYTE pTarget = CalculateTarget(pSource, oldDelta);
-		m_pbTarget = pTarget;
-
-		LONG newDelta = CalculateNewDelta(pTarget, pDest);
-		instruction = EncodeBranch8(instruction, newDelta);
-		if (instruction) {
-			// Copy the 16 bit instruction over
-			*(PUSHORT)(pDest) = instruction;
-			return sizeof(USHORT); // The source instruction was 16 bits
-		}
-
-		// If that fails, re-encode as a sequence of branches
-		// For example, bne +0x6E (0x90452) becomes:
-		//
-		// 001df758 d100     bne         001df75c
-		// 001df75a e005     b           001df768
-		// 001df75c e002     b           001df764
-		// 001df75e bf00     nop
-		// 001df760 0452     dc.h        0452
-		// 001df762 0009     dc.h        0009
-		// 001df764 f85ff008 ldr         pc,=0x90452
-		//
-
-		// First, reuse the existing conditional branch to, if successful, branch down to a 'long branch' that we will emit below
-		USHORT newInstruction = EncodeBranch8(*(PUSHORT)(pSource), 0); // Due to the size of c_PCAdjust a zero-length branch moves 4 bytes forward, past the following unconditional branch
-		ASSERT(newInstruction);
-		PUSHORT pDstInst = (PUSHORT)(pDest);
-		*pDstInst++ = newInstruction;
-
-		// Next, prepare to insert an unconditional branch that will be hit if the condition above is not met.  This branch will branch over the following 'long branch'
-		// We can't actually encode this branch yet though, because 'long branches' can vary in size
-		PUSHORT pUnconditionalBranchInstruction = pDstInst++;
-
-		// Then, emit a 'long branch' that will be hit if the original condition is met
-		BYTE longBranchSize = EmitLongBranch(pDstInst, pTarget);
-
-		// Finally, encode and emit the unconditional branch that will be used to branch past the 'long branch' if the initial condition was not met
-		Branch11 branch11 = { 0x00, 0x1C };
-		newInstruction = EncodeBranch11(*(DWORD*)(&branch11), longBranchSize - c_PCAdjust + sizeof(USHORT));
-		ASSERT(newInstruction);
-		*pUnconditionalBranchInstruction = newInstruction;
-
-		// Compute the extra space needed for the branch sequence
-		m_lExtra = CalculateExtra(sizeof(USHORT), pDest, (BYTE*)(pDstInst));
-		return sizeof(USHORT); // The source instruction was 16 bits
-	}
-
-	return PureCopy16(pSource, pDest);
-}
-
-BYTE CDetourDis32::CopyUnConditionalBranch16(BYTE* pSource, BYTE* pDest)
-{
-	ULONG instruction = *(PUSHORT)(pSource);
-
-	LONG oldDelta = DecodeBranch11(instruction);
-	PBYTE pTarget = CalculateTarget(pSource, oldDelta);
-	m_pbTarget = pTarget;
-
-	LONG newDelta = CalculateNewDelta(pTarget, pDest);
-	instruction = EncodeBranch11(instruction, newDelta);
-	if (instruction) {
-		// Copy the 16 bit instruction over
-		*(PUSHORT)(pDest) = (USHORT)instruction;
-		return sizeof(USHORT); // The source instruction was 16 bits
-	}
-
-	// If that fails, re-encode as 32-bit
-	PUSHORT pDstInst = (PUSHORT)(pDest);
-	instruction = EncodeBranch24(0xf0009000, newDelta, FALSE);
-	if (instruction) {
-		// Copy both bytes of the instruction
-		EmitLongInstruction(pDstInst, instruction);
-
-		m_lExtra = sizeof(DWORD) - sizeof(USHORT); // The destination instruction was 32 bits
-		return sizeof(USHORT); // The source instruction was 16 bits
-	}
-
-	// If that fails, emit as a 'long branch'
-	if (!instruction) {
-		// For example, b +0x7FE (00090be6) becomes:
-		// 003f6d02 e001     b           003f6d08
-		// 003f6d04 0be6     dc.h        0be6
-		// 003f6d06 0009     dc.h        0009
-		// 003f6d08 f85ff008 ldr         pc,=0x90BE6
-		EmitLongBranch(pDstInst, pTarget);
-
-		// Compute the extra space needed for the branch sequence
-		m_lExtra = CalculateExtra(sizeof(USHORT), pDest, (BYTE*)(pDstInst));
-		return sizeof(USHORT); // The source instruction was 16 bits
-	}
-
-	return sizeof(USHORT); // The source instruction was 16 bits
-}
-
-BYTE CDetourDis32::CopyLiteralLoad16(BYTE* pSource, BYTE* pDest)
-{
-	PBYTE pStart = pDest;
-	USHORT instruction = *(PUSHORT)(pSource);
-
-	LONG oldDelta = DecodeLiteralLoad8(instruction);
-	PBYTE pTarget = CalculateTarget(Align4(pSource), oldDelta);
-
-	// Re-encode as a 'long literal load'
-	// For example, ldr r0, [PC + 1E0] (0x905B4) becomes:
-	//
-	// 001df72c f85f0008 ldr         r0,=0x905B4
-	// 001df730 f8d00000 ldr.w       r0,[r0]
-	LiteralLoad8& load8 = (LiteralLoad8&)(instruction);
-	EmitLongLiteralLoad((PUSHORT&)pDest, load8.Register, pTarget);
-
-	m_lExtra = (LONG)(pDest - pStart - sizeof(USHORT));
-	return sizeof(USHORT); // The source instruction was 16 bits
-}
-
-BYTE CDetourDis32::CopyBranchExchangeOrDataProcessing16(BYTE* pSource, BYTE* pDest)
-{
-	ULONG instruction = *(PUSHORT)(pSource);
-
-	// BX
-	if ((instruction & 0xff80) == 0x4700) {
-		// The target is stored in a register
-		m_pbTarget = (PBYTE)DETOUR_INSTRUCTION_TARGET_DYNAMIC;
-	}
-
-	// AND, LSR, TST, ADD, CMP, MOV
-	return PureCopy16(pSource, pDest);
-}
-
-const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[33] =
+const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[0x5B] =
 {
 	// Shift by immediate, move register
 	// ToDo: Not handling moves from PC
@@ -4392,10 +4208,10 @@ const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[33] =
 	// Data-processing register
 	// Special data processing
 	// Branch/exchange instruction set
-	/* 0b01000 */{ 0x08, &CDetourDis32::CopyBranchExchangeOrDataProcessing16 },
+	/* 0b01000 */{ 0x08, &CDetourDis32::PureCopy32 },
 
 	// Load from literal pool
-	/* 0b01001 */{ 0x09, &CDetourDis32::CopyLiteralLoad16 },
+	/* 0b01001 */{ 0x09, &CDetourDis32::PureCopy32 },
 
 	// Load/store register offset
 	/* 0b01010 */{ 0x0a, &CDetourDis32::PureCopy32 },
@@ -4423,8 +4239,8 @@ const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[33] =
 	/* 0b10101 */{ 0x15, &CDetourDis32::PureCopy32 },
 
 	// Miscellaneous
-	/* 0b10110 */{ 0x16, &CDetourDis32::CopyMiscellaneous16 },
-	/* 0b10111 */{ 0x17, &CDetourDis32::CopyMiscellaneous16 },
+	/* 0b10110 */{ 0x16, &CDetourDis32::PureCopy32 },
+	/* 0b10111 */{ 0x17, &CDetourDis32::PureCopy32 },
 
 	// Load/store multiple
 	/* 0b11000 */{ 0x18, &CDetourDis32::PureCopy32 },
@@ -4434,20 +4250,78 @@ const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[33] =
 	//     Does this count as a 'target' for detours?
 
 	// Conditional branch
-	/* 0b11010 */{ 0x1a, &CDetourDis32::CopyConditionalBranchOrOther16 },
+	/* 0b11010 */{ 0x1a, &CDetourDis32::PureCopy32 },
 
 	// Conditional branch
 	// Undefined instruction
 	// Service (system) call
-	/* 0b11011 */{ 0x1b, &CDetourDis32::CopyConditionalBranchOrOther16 },
+	/* 0b11011 */{ 0x1b, &CDetourDis32::PureCopy32 },
 
 	// Unconditional branch
-	/* 0b11100 */{ 0x1c, &CDetourDis32::CopyUnConditionalBranch16 },
+	/* 0b11100 */{ 0x1c, &CDetourDis32::PureCopy32 },
 
 	// 32-bit instruction
-	/* 0b11101 */{ 0x1d, &CDetourDis32::BeginCopy32 },
-	/* 0b11110 */{ 0x1e, &CDetourDis32::BeginCopy32 },
-	/* 0b11111 */{ 0x1f, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x1d, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x1e, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x1f, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x20, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x21, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x22, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x23, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x24, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x25, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x26, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x27, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x28, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x29, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x2A, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x2B, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x2C, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x2D, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x2E, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x2F, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x30, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x31, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x32, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x33, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x34, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x35, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x36, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x37, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x38, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x39, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x3A, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x3B, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x3C, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x3D, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x3E, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x3F, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x40, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x41, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x42, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x43, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x44, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x45, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x46, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x47, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x48, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x49, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x4A, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x4B, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x4C, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x4D, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x4E, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x4F, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x50, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x51, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x52, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x53, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x54, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x55, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x56, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x57, &CDetourDis32::BeginCopy32 },
+	/* 0b */{ 0x58, &CDetourDis32::BeginCopy32 },
+	/* 0b01011001 */{ 0x59, &CDetourDis32::CopyLiteralLoad32 },
 { 0, NULL }
 };
 
@@ -4460,7 +4334,7 @@ BYTE CDetourDis32::CopyBranch24(BYTE* pSource, BYTE* pDest)
 	m_pbTarget = pTarget;
 
 	// Re-encode as 32-bit
-	PUSHORT pDstInst = (PUSHORT)(pDest);
+	PDWORD pDstInst = (PDWORD)(pDest);
 	LONG newDelta = CalculateNewDelta(pTarget, pDest);
 	instruction = EncodeBranch24(instruction, newDelta, fLink);
 	if (instruction) {
@@ -4486,7 +4360,7 @@ BYTE CDetourDis32::CopyBranchOrMiscellaneous32(BYTE* pSource, BYTE* pDest)
 		m_pbTarget = pTarget;
 
 		// Re-encode as 32-bit
-		PUSHORT pDstInst = (PUSHORT)(pDest);
+		PDWORD pDstInst = (PDWORD)(pDest);
 		LONG newDelta = CalculateNewDelta(pTarget, pDest);
 		instruction = EncodeBranch20(instruction, newDelta);
 		if (instruction) {
@@ -4519,7 +4393,7 @@ BYTE CDetourDis32::CopyBranchOrMiscellaneous32(BYTE* pSource, BYTE* pDest)
 		// the following 'long branch'
 		// We can't actually encode this branch yet though, because
 		// 'long branches' can vary in size
-		PUSHORT pUnconditionalBranchInstruction = pDstInst++;
+		PDWORD pUnconditionalBranchInstruction = pDstInst++;
 
 		// Then, emit a 'long branch' that will be hit if the original condition is met
 		BYTE longBranchSize = EmitLongBranch(pDstInst, pTarget);
@@ -4544,7 +4418,7 @@ BYTE CDetourDis32::CopyBranchOrMiscellaneous32(BYTE* pSource, BYTE* pDest)
 	if ((instruction & 0xf800d000) == 0xf000d000) { // BL.W <label>
 													// B <label>  11110xxxxxxxxxxx10xxxxxxxxxxxxxx
 
-		PUSHORT pDstInst = (PUSHORT)(pDest);
+		PDWORD pDstInst = (PDWORD)(pDest);
 		BOOL fLink;
 		LONG oldDelta = DecodeBranch24(instruction, fLink);
 		PBYTE pTarget = CalculateTarget(pSource, oldDelta);
@@ -4585,9 +4459,9 @@ BYTE CDetourDis32::CopyLiteralLoad32(BYTE* pSource, BYTE* pDest)
 	LONG oldDelta = DecodeLiteralLoad12(instruction);
 	PBYTE pTarget = CalculateTarget(Align4(pSource), oldDelta);
 
-	LiteralLoad12& load = (LiteralLoad12&)(instruction);
+	SingleDataTransfer& load = (SingleDataTransfer&)(instruction);
 
-	EmitLongLiteralLoad((PUSHORT&)pDest, load.Register, pTarget);
+	EmitLongLiteralLoad((PDWORD&)pDest, load.DestinationRegister, pTarget);
 
 	m_lExtra = (LONG)(pDest - pStart - sizeof(DWORD));
 
@@ -4673,7 +4547,7 @@ BYTE CDetourDis32::CopyTableBranch(BYTE* pSource, BYTE* pDest)
 	//
 
 	// Push r0 to make room for our jump address on the stack
-	PUSHORT pDstInst = (PUSHORT)(pDest);
+	PDWORD pDstInst = (PDWORD)(pDest);
 	*pDstInst++ = 0xb401;
 
 	// Locate a scratch register
@@ -4834,9 +4708,10 @@ CDetourDis32::CDetourDis32()
 	m_lExtra = 0;
 }
 
-// placeholder for determining wether to relocate instruction
+// Determine wether to relocate instruction if it is PC-relative
 static inline bool IsRelInstruction(DWORD opcode)
 {
+	// LDR, ADD, B, BL instructions are relative for ARM mode
 	return (opcode & 0x0c000000) == 0x04000000
 		&& (opcode & 0xf0000000) != 0xf0000000
 		&& (opcode & 0x000f0000) == 0x000f0000;
@@ -4857,10 +4732,14 @@ PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
 	}
 	// Make sure the constant pool is 32-bit aligned.
 	m_pbPool -= ((ULONG_PTR)m_pbPool) & 3;
-	if (IsRelInstruction(*(DWORD*)pSrc)) {
-		ULONG opCode = GetLongInstruction(pSrc);
-		SingleDataTransfer&  dp = (SingleDataTransfer&)opCode;
-		REFCOPYENTRY pEntry = &s_rceCopyTable[pSrc[1] >> 3];
+
+	ULONG opCode = GetLongInstruction(pSrc);
+
+	if (IsRelInstruction(opCode)) {
+	
+		SingleDataTransfer& ins = (SingleDataTransfer&)opCode;
+
+		REFCOPYENTRY pEntry = &s_rceCopyTable[(opCode >> 0x14) & 0xFF];
 		ULONG size = (this->*pEntry->pfCopy)(pSrc, pDst);
 
 		pSrc += size;
