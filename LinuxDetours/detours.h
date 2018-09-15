@@ -63,7 +63,7 @@
 #endif
 
 #define VER_DETOURS_BITS    DETOUR_STRINGIFY(DETOURS_BITS)
-#define DetourExport		__attribute__((visibility("default")))
+#define DetourExport        __attribute__((visibility("default")))
 //////////////////////////////////////////////////////////////////////////////
 //
 
@@ -271,10 +271,10 @@ typedef UINT64 ULONG_PTR;
 #define GUID_DEFINED
 typedef struct  _GUID
 {
-	DWORD Data1;
-	WORD Data2;
-	WORD Data3;
-	BYTE Data4[8];
+    DWORD Data1;
+    WORD Data2;
+    WORD Data3;
+    BYTE Data4[8];
 } GUID;
 
 #ifdef INITGUID
@@ -310,20 +310,20 @@ typedef struct  _GUID
 extern "C" {
 #endif // __cplusplus
 
-	/////////////////////////////////////////////////// Instruction Target Macros.
-	//
+    /////////////////////////////////////////////////// Instruction Target Macros.
+    //
 #define DETOUR_INSTRUCTION_TARGET_NONE          ((PVOID)0)
 #define DETOUR_INSTRUCTION_TARGET_DYNAMIC       ((PVOID)(LONG_PTR)-1)
 #define DETOUR_SECTION_HEADER_SIGNATURE         0x00727444   // "Dtr\0"
 
-	extern const GUID DETOUR_EXE_RESTORE_GUID;
-	extern const GUID DETOUR_EXE_HELPER_GUID;
+    extern const GUID DETOUR_EXE_RESTORE_GUID;
+    extern const GUID DETOUR_EXE_HELPER_GUID;
 
 #define DETOUR_TRAMPOLINE_SIGNATURE             0x21727444  // Dtr!
-	typedef struct _DETOUR_TRAMPOLINE DETOUR_TRAMPOLINE, *PDETOUR_TRAMPOLINE;
+    typedef struct _DETOUR_TRAMPOLINE DETOUR_TRAMPOLINE, *PDETOUR_TRAMPOLINE;
 
-	/////////////////////////////////////////////////////////// Binary Structures.
-	//
+    /////////////////////////////////////////////////////////// Binary Structures.
+    //
 
 
 
@@ -345,72 +345,72 @@ extern "C" {
       0,\
 }
 
-	/////////////////////////////////////////////////////////////// Helper Macros.
-	//
+    /////////////////////////////////////////////////////////////// Helper Macros.
+    //
 #define DETOURS_STRINGIFY(x)    DETOURS_STRINGIFY_(x)
 #define DETOURS_STRINGIFY_(x)    #x
 
-	///////////////////////////////////////////////////////////// Binary Typedefs.
-	//
-	/*
-	typedef BOOL(CALLBACK *PF_DETOUR_BINARY_BYWAY_CALLBACK)(
-		_In_opt_ PVOID pContext,
-		_In_opt_ LPCSTR pszFile,
-		_Outptr_result_maybenull_ LPCSTR *ppszOutFile);
+    ///////////////////////////////////////////////////////////// Binary Typedefs.
+    //
+    /*
+    typedef BOOL(CALLBACK *PF_DETOUR_BINARY_BYWAY_CALLBACK)(
+        _In_opt_ PVOID pContext,
+        _In_opt_ LPCSTR pszFile,
+        _Outptr_result_maybenull_ LPCSTR *ppszOutFile);
 
-	typedef BOOL(CALLBACK *PF_DETOUR_BINARY_FILE_CALLBACK)(
-		_In_opt_ PVOID pContext,
-		_In_ LPCSTR pszOrigFile,
-		_In_ LPCSTR pszFile,
-		_Outptr_result_maybenull_ LPCSTR *ppszOutFile);
+    typedef BOOL(CALLBACK *PF_DETOUR_BINARY_FILE_CALLBACK)(
+        _In_opt_ PVOID pContext,
+        _In_ LPCSTR pszOrigFile,
+        _In_ LPCSTR pszFile,
+        _Outptr_result_maybenull_ LPCSTR *ppszOutFile);
 
-	typedef BOOL(CALLBACK *PF_DETOUR_BINARY_SYMBOL_CALLBACK)(
-		_In_opt_ PVOID pContext,
-		_In_ ULONG nOrigOrdinal,
-		_In_ ULONG nOrdinal,
-		_Out_ ULONG *pnOutOrdinal,
-		_In_opt_ LPCSTR pszOrigSymbol,
-		_In_opt_ LPCSTR pszSymbol,
-		_Outptr_result_maybenull_ LPCSTR *ppszOutSymbol);
+    typedef BOOL(CALLBACK *PF_DETOUR_BINARY_SYMBOL_CALLBACK)(
+        _In_opt_ PVOID pContext,
+        _In_ ULONG nOrigOrdinal,
+        _In_ ULONG nOrdinal,
+        _Out_ ULONG *pnOutOrdinal,
+        _In_opt_ LPCSTR pszOrigSymbol,
+        _In_opt_ LPCSTR pszSymbol,
+        _Outptr_result_maybenull_ LPCSTR *ppszOutSymbol);
 
-	typedef BOOL(CALLBACK *PF_DETOUR_BINARY_COMMIT_CALLBACK)(
-		_In_opt_ PVOID pContext);
+    typedef BOOL(CALLBACK *PF_DETOUR_BINARY_COMMIT_CALLBACK)(
+        _In_opt_ PVOID pContext);
 
-	typedef BOOL(CALLBACK *PF_DETOUR_ENUMERATE_EXPORT_CALLBACK)(_In_opt_ PVOID pContext,
-		_In_ ULONG nOrdinal,
-		_In_opt_ LPCSTR pszName,
-		_In_opt_ PVOID pCode);
+    typedef BOOL(CALLBACK *PF_DETOUR_ENUMERATE_EXPORT_CALLBACK)(_In_opt_ PVOID pContext,
+        _In_ ULONG nOrdinal,
+        _In_opt_ LPCSTR pszName,
+        _In_opt_ PVOID pCode);
 
-	typedef BOOL(CALLBACK *PF_DETOUR_IMPORT_FILE_CALLBACK)(_In_opt_ PVOID pContext,
-		_In_opt_ HMODULE hModule,
-		_In_opt_ LPCSTR pszFile);
+    typedef BOOL(CALLBACK *PF_DETOUR_IMPORT_FILE_CALLBACK)(_In_opt_ PVOID pContext,
+        _In_opt_ HMODULE hModule,
+        _In_opt_ LPCSTR pszFile);
 
-	typedef BOOL(CALLBACK *PF_DETOUR_IMPORT_FUNC_CALLBACK)(_In_opt_ PVOID pContext,
-		_In_ DWORD nOrdinal,
-		_In_opt_ LPCSTR pszFunc,
-		_In_opt_ PVOID pvFunc);
+    typedef BOOL(CALLBACK *PF_DETOUR_IMPORT_FUNC_CALLBACK)(_In_opt_ PVOID pContext,
+        _In_ DWORD nOrdinal,
+        _In_opt_ LPCSTR pszFunc,
+        _In_opt_ PVOID pvFunc);
 
-	// Same as PF_DETOUR_IMPORT_FUNC_CALLBACK but extra indirection on last parameter.
-	typedef BOOL(CALLBACK *PF_DETOUR_IMPORT_FUNC_CALLBACK_EX)(_In_opt_ PVOID pContext,
-		_In_ DWORD nOrdinal,
-		_In_opt_ LPCSTR pszFunc,
-		_In_opt_ PVOID* ppvFunc);*/
+    // Same as PF_DETOUR_IMPORT_FUNC_CALLBACK but extra indirection on last parameter.
+    typedef BOOL(CALLBACK *PF_DETOUR_IMPORT_FUNC_CALLBACK_EX)(_In_opt_ PVOID pContext,
+        _In_ DWORD nOrdinal,
+        _In_opt_ LPCSTR pszFunc,
+        _In_opt_ PVOID* ppvFunc);*/
 
-	typedef VOID * PDETOUR_BINARY;
-	typedef VOID * PDETOUR_LOADED_BINARY;
+    typedef VOID * PDETOUR_BINARY;
+    typedef VOID * PDETOUR_LOADED_BINARY;
 
-	//////////////////////////////////////////////////////////// Transaction APIs.
-	//
-	LONG DetourTransactionBegin(VOID);
-	LONG DetourTransactionAbort(VOID);
-	LONG DetourTransactionCommit(VOID);
-	void* DetourGetLastHandle(VOID);
+    //////////////////////////////////////////////////////////// Transaction APIs.
+    //
+    LONG DetourTransactionBegin(VOID);
+    LONG DetourTransactionAbort(VOID);
+    LONG DetourTransactionCommit(VOID);
+    void* DetourGetLastHandle(VOID);
 
 
-	//////////////////////////////////////////////////////////////////////////////
-	//
-	// dotnet trampoline barrier definitions
-	//
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // dotnet trampoline barrier definitions
+    //
 #define MAX_HOOK_COUNT              1024
 #define MAX_ACE_COUNT               128
 #define MAX_THREAD_COUNT            128
@@ -424,180 +424,180 @@ extern "C" {
 #define STATUS_SUCCESS              0
 #define RETURN                      { RtlSetLastError(STATUS_SUCCESS, STATUS_SUCCESS, (PWCHAR)""); NtStatus = STATUS_SUCCESS; goto FINALLY_OUTRO; }
 #define FORCE(expr)                 { if(!RTL_SUCCESS(NtStatus = (expr))) goto THROW_OUTRO; }
-#define IsValidPointer				RtlIsValidPointer
+#define IsValidPointer                RtlIsValidPointer
 
 #define PtrToUlong( p ) ((ULONG)(ULONG_PTR) (p) )
-	BOOL RtlIsValidPointer(PVOID InPtr, ULONG InSize);
+    BOOL RtlIsValidPointer(PVOID InPtr, ULONG InSize);
 
-	typedef struct _DETOUR_TRAMPOLINE * PLOCAL_HOOK_INFO;
+    typedef struct _DETOUR_TRAMPOLINE * PLOCAL_HOOK_INFO;
 
-	typedef struct _HOOK_ACL_
-	{
-		ULONG                   Count;
-		BOOL                    IsExclusive;
-		ULONG                   Entries[MAX_ACE_COUNT];
-	}HOOK_ACL;
+    typedef struct _HOOK_ACL_
+    {
+        ULONG                   Count;
+        BOOL                    IsExclusive;
+        ULONG                   Entries[MAX_ACE_COUNT];
+    }HOOK_ACL;
 
-	typedef struct _HOOK_TRACE_INFO_
-	{
-		PLOCAL_HOOK_INFO        Link;
-	}HOOK_TRACE_INFO, *TRACED_HOOK_HANDLE;
+    typedef struct _HOOK_TRACE_INFO_
+    {
+        PLOCAL_HOOK_INFO        Link;
+    }HOOK_TRACE_INFO, *TRACED_HOOK_HANDLE;
 
-	/*
-	Setup the ACLs after hook installation. Please note that every
-	hook starts suspended. You will have to set a proper ACL to
-	make it active!
-	*/
+    /*
+    Setup the ACLs after hook installation. Please note that every
+    hook starts suspended. You will have to set a proper ACL to
+    make it active!
+    */
 
-	LONG LhSetInclusiveACL(
-		ULONG* InThreadIdList,
-		ULONG InThreadCount,
-		TRACED_HOOK_HANDLE InHandle);
+    LONG LhSetInclusiveACL(
+        ULONG* InThreadIdList,
+        ULONG InThreadCount,
+        TRACED_HOOK_HANDLE InHandle);
 
-	LONG LhSetExclusiveACL(
-		ULONG* InThreadIdList,
-		ULONG InThreadCount,
-		TRACED_HOOK_HANDLE InHandle);
+    LONG LhSetExclusiveACL(
+        ULONG* InThreadIdList,
+        ULONG InThreadCount,
+        TRACED_HOOK_HANDLE InHandle);
 
-	LONG LhSetGlobalInclusiveACL(
-		ULONG* InThreadIdList,
-		ULONG InThreadCount);
+    LONG LhSetGlobalInclusiveACL(
+        ULONG* InThreadIdList,
+        ULONG InThreadCount);
 
-	LONG LhSetGlobalExclusiveACL(
-		ULONG* InThreadIdList,
-		ULONG InThreadCount);
+    LONG LhSetGlobalExclusiveACL(
+        ULONG* InThreadIdList,
+        ULONG InThreadCount);
 
-	LONG LhIsThreadIntercepted(
-		TRACED_HOOK_HANDLE InHook,
-		ULONG InThreadID,
-		BOOL* OutResult);
+    LONG LhIsThreadIntercepted(
+        TRACED_HOOK_HANDLE InHook,
+        ULONG InThreadID,
+        BOOL* OutResult);
 
-	LONG LhSetACL(
-		HOOK_ACL* InAcl,
-		BOOL InIsExclusive,
-		ULONG* InThreadIdList,
-		ULONG InThreadCount);
+    LONG LhSetACL(
+        HOOK_ACL* InAcl,
+        BOOL InIsExclusive,
+        ULONG* InThreadIdList,
+        ULONG InThreadCount);
 
-	HOOK_ACL* LhBarrierGetAcl();
-	/*
-	The following barrier methods are meant to be used in hook handlers only!
+    HOOK_ACL* LhBarrierGetAcl();
+    /*
+    The following barrier methods are meant to be used in hook handlers only!
 
-	They will all fail with STATUS_NOT_SUPPORTED if called outside a
-	valid hook handler...
-	*/
-	LONG LhBarrierGetCallback(PVOID* OutValue);
+    They will all fail with STATUS_NOT_SUPPORTED if called outside a
+    valid hook handler...
+    */
+    LONG LhBarrierGetCallback(PVOID* OutValue);
 
-	LONG LhBarrierGetReturnAddress(PVOID* OutValue);
+    LONG LhBarrierGetReturnAddress(PVOID* OutValue);
 
-	LONG LhBarrierGetAddressOfReturnAddress(PVOID** OutValue);
+    LONG LhBarrierGetAddressOfReturnAddress(PVOID** OutValue);
 
-	LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer);
+    LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer);
 
-	LONG DetourUpdateThread(_In_ pthread_t hThread);
+    LONG DetourUpdateThread(_In_ pthread_t hThread);
 
-	LONG DetourAttach(_Inout_ PVOID *ppPointer,
-		_In_ PVOID pDetour);
+    LONG DetourAttach(_Inout_ PVOID *ppPointer,
+        _In_ PVOID pDetour);
 
-	LONG DetourAttachEx(_Inout_ PVOID *ppPointer,
-		_In_ PVOID pDetour,
-		_Out_opt_ PDETOUR_TRAMPOLINE *ppRealTrampoline,
-		_Out_opt_ PVOID *ppRealTarget,
-		_Out_opt_ PVOID *ppRealDetour);
+    LONG DetourAttachEx(_Inout_ PVOID *ppPointer,
+        _In_ PVOID pDetour,
+        _Out_opt_ PDETOUR_TRAMPOLINE *ppRealTrampoline,
+        _Out_opt_ PVOID *ppRealTarget,
+        _Out_opt_ PVOID *ppRealDetour);
 
-	LONG DetourDetach(_Inout_ PVOID *ppPointer,
-		_In_ PVOID pDetour);
+    LONG DetourDetach(_Inout_ PVOID *ppPointer,
+        _In_ PVOID pDetour);
 
-	BOOL DetourSetIgnoreTooSmall(_In_ BOOL fIgnore);
-	BOOL DetourSetRetainRegions(_In_ BOOL fRetain);
-	PVOID DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound);
-	PVOID DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound);
+    BOOL DetourSetIgnoreTooSmall(_In_ BOOL fIgnore);
+    BOOL DetourSetRetainRegions(_In_ BOOL fRetain);
+    PVOID DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound);
+    PVOID DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound);
 
-	void LhBarrierThreadDetach();
+    void LhBarrierThreadDetach();
 
-	LONG LhBarrierProcessAttach();
-	void LhBarrierProcessDetach();
+    LONG LhBarrierProcessAttach();
+    void LhBarrierProcessDetach();
 
-	void LhCriticalInitialize();
-	void LhCriticalFinalize();
+    void LhCriticalInitialize();
+    void LhCriticalFinalize();
 
-	LONG LhInstallHook(
-		void* InEntryPoint,
-		void* InHookProc,
-		void* InCallback,
-		TRACED_HOOK_HANDLE OutHandle);
+    LONG LhInstallHook(
+        void* InEntryPoint,
+        void* InHookProc,
+        void* InCallback,
+        TRACED_HOOK_HANDLE OutHandle);
 
-	LONG LhUninstallHook(TRACED_HOOK_HANDLE InHandle);
-
-
-	////////////////////////////////////////////////////////////// Code Functions.
-	//
-	PVOID DetourFindFunction(_In_ LPCSTR pszModule,
-		_In_ LPCSTR pszFunction);
-	PVOID DetourCodeFromPointer(_In_ PVOID pPointer,
-		_Out_opt_ PVOID *ppGlobals);
-	PVOID DetourCopyInstruction(_In_opt_ PVOID pDst,
-		_Inout_opt_ PVOID *ppDstPool,
-		_In_ PVOID pSrc,
-		_Out_opt_ PVOID *ppTarget,
-		_Out_opt_ LONG *plExtra);
+    LONG LhUninstallHook(TRACED_HOOK_HANDLE InHandle);
 
 
-	///////////////////////////////////////////////////// Loaded Binary Functions.
-	//
-	HMODULE DetourGetContainingModule(_In_ PVOID pvAddr);
-	HMODULE DetourEnumerateModules(_In_opt_ HMODULE hModuleLast);
-	PVOID DetourGetEntryPoint(_In_opt_ HMODULE hModule);
-	ULONG DetourGetModuleSize(_In_opt_ HMODULE hModule);
+    ////////////////////////////////////////////////////////////// Code Functions.
+    //
+    PVOID DetourFindFunction(_In_ LPCSTR pszModule,
+        _In_ LPCSTR pszFunction);
+    PVOID DetourCodeFromPointer(_In_ PVOID pPointer,
+        _Out_opt_ PVOID *ppGlobals);
+    PVOID DetourCopyInstruction(_In_opt_ PVOID pDst,
+        _Inout_opt_ PVOID *ppDstPool,
+        _In_ PVOID pSrc,
+        _Out_opt_ PVOID *ppTarget,
+        _Out_opt_ LONG *plExtra);
 
 
-	_Writable_bytes_(*pcbData)
-		_Readable_bytes_(*pcbData)
-		_Success_(return != NULL)
-		PVOID DetourFindPayload(_In_opt_ HMODULE hModule,
-			_In_ REFGUID rguid,
-			_Out_ DWORD *pcbData);
-
-	_Writable_bytes_(*pcbData)
-		_Readable_bytes_(*pcbData)
-		_Success_(return != NULL)
-		PVOID DetourFindPayloadEx(_In_ REFGUID rguid,
-			_Out_ DWORD * pcbData);
-
-	DWORD DetourGetSizeOfPayloads(_In_opt_ HMODULE hModule);
-
-	///////////////////////////////////////////////// Persistent Binary Functions.
-	//
-
-	PDETOUR_BINARY DetourBinaryOpen(_In_ HANDLE hFile);
-
-	_Writable_bytes_(*pcbData)
-		_Readable_bytes_(*pcbData)
-		_Success_(return != NULL)
-		PVOID DetourBinaryEnumeratePayloads(_In_ PDETOUR_BINARY pBinary,
-			_Out_opt_ GUID *pGuid,
-			_Out_ DWORD *pcbData,
-			_Inout_ DWORD *pnIterator);
-
-	_Writable_bytes_(*pcbData)
-		_Readable_bytes_(*pcbData)
-		_Success_(return != NULL)
-		PVOID DetourBinaryFindPayload(_In_ PDETOUR_BINARY pBinary,
-			_In_ REFGUID rguid,
-			_Out_ DWORD *pcbData);
-
-	PVOID DetourBinarySetPayload(_In_ PDETOUR_BINARY pBinary,
-		_In_ REFGUID rguid,
-		_In_reads_opt_(cbData) PVOID pData,
-		_In_ DWORD cbData);
+    ///////////////////////////////////////////////////// Loaded Binary Functions.
+    //
+    HMODULE DetourGetContainingModule(_In_ PVOID pvAddr);
+    HMODULE DetourEnumerateModules(_In_opt_ HMODULE hModuleLast);
+    PVOID DetourGetEntryPoint(_In_opt_ HMODULE hModule);
+    ULONG DetourGetModuleSize(_In_opt_ HMODULE hModule);
 
 
-	/////////////////////////////////////////////////// Create Process & Load Dll.
-	//
+    _Writable_bytes_(*pcbData)
+        _Readable_bytes_(*pcbData)
+        _Success_(return != NULL)
+        PVOID DetourFindPayload(_In_opt_ HMODULE hModule,
+            _In_ REFGUID rguid,
+            _Out_ DWORD *pcbData);
+
+    _Writable_bytes_(*pcbData)
+        _Readable_bytes_(*pcbData)
+        _Success_(return != NULL)
+        PVOID DetourFindPayloadEx(_In_ REFGUID rguid,
+            _Out_ DWORD * pcbData);
+
+    DWORD DetourGetSizeOfPayloads(_In_opt_ HMODULE hModule);
+
+    ///////////////////////////////////////////////// Persistent Binary Functions.
+    //
+
+    PDETOUR_BINARY DetourBinaryOpen(_In_ HANDLE hFile);
+
+    _Writable_bytes_(*pcbData)
+        _Readable_bytes_(*pcbData)
+        _Success_(return != NULL)
+        PVOID DetourBinaryEnumeratePayloads(_In_ PDETOUR_BINARY pBinary,
+            _Out_opt_ GUID *pGuid,
+            _Out_ DWORD *pcbData,
+            _Inout_ DWORD *pnIterator);
+
+    _Writable_bytes_(*pcbData)
+        _Readable_bytes_(*pcbData)
+        _Success_(return != NULL)
+        PVOID DetourBinaryFindPayload(_In_ PDETOUR_BINARY pBinary,
+            _In_ REFGUID rguid,
+            _Out_ DWORD *pcbData);
+
+    PVOID DetourBinarySetPayload(_In_ PDETOUR_BINARY pBinary,
+        _In_ REFGUID rguid,
+        _In_reads_opt_(cbData) PVOID pData,
+        _In_ DWORD cbData);
+
+
+    /////////////////////////////////////////////////// Create Process & Load Dll.
+    //
 
 
 
-	//
-	//////////////////////////////////////////////////////////////////////////////
+    //
+    //////////////////////////////////////////////////////////////////////////////
 #ifdef __cplusplus
 }
 #endif // __cplusplus
@@ -618,7 +618,7 @@ extern "C" {
 static inline
 LONG InterlockedCompareExchange(_Inout_ LONG *ptr, _In_ LONG nval, _In_ LONG oval)
 {
-	return (LONG)__sync_val_compare_and_swap(ptr, oval, nval);
+    return (LONG)__sync_val_compare_and_swap(ptr, oval, nval);
 }
 #else
 #pragma warning(push)
@@ -676,31 +676,31 @@ PVOID DetourCopyInstruction##x(_In_opt_ PVOID pDst,              \
 BOOL DetourSetCodeModule##x(_In_ HMODULE hModule,                \
                                    _In_ BOOL fLimitReferencesToModule); \
 
-	DETOUR_OFFLINE_LIBRARY(X86)
-		DETOUR_OFFLINE_LIBRARY(X64)
-		DETOUR_OFFLINE_LIBRARY(ARM)
-		DETOUR_OFFLINE_LIBRARY(ARM64)
-		DETOUR_OFFLINE_LIBRARY(IA64)
+    DETOUR_OFFLINE_LIBRARY(X86)
+        DETOUR_OFFLINE_LIBRARY(X64)
+        DETOUR_OFFLINE_LIBRARY(ARM)
+        DETOUR_OFFLINE_LIBRARY(ARM64)
+        DETOUR_OFFLINE_LIBRARY(IA64)
 
 #undef DETOUR_OFFLINE_LIBRARY
 
-		//////////////////////////////////////////////////////////////////////////////
-		//
-		// Helpers for manipulating page protection.
-		//
+        //////////////////////////////////////////////////////////////////////////////
+        //
+        // Helpers for manipulating page protection.
+        //
 
-		_Success_(return != FALSE)
-		BOOL DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
-			_In_  PVOID pAddress,
-			_In_  SIZE_T nSize,
-			_In_  DWORD dwNewProtect,
-			_Out_ PDWORD pdwOldProtect);
+        _Success_(return != FALSE)
+        BOOL DetourVirtualProtectSameExecuteEx(_In_  pid_t hProcess,
+            _In_  PVOID pAddress,
+            _In_  SIZE_T nSize,
+            _In_  DWORD dwNewProtect,
+            _Out_ PDWORD pdwOldProtect);
 
-	_Success_(return != FALSE)
-		BOOL DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
-			_In_  SIZE_T nSize,
-			_In_  DWORD dwNewProtect,
-			_Out_ PDWORD pdwOldProtect);
+    _Success_(return != FALSE)
+        BOOL DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
+            _In_  SIZE_T nSize,
+            _In_  DWORD dwNewProtect,
+            _Out_ PDWORD pdwOldProtect);
 #ifdef __cplusplus
 }
 #endif // __cplusplus
@@ -717,8 +717,8 @@ BOOL DetourSetCodeModule##x(_In_ HMODULE hModule,                \
 //LONG LhBarrierEndStackTrace(PVOID InBackup);
 
 BOOL LhIsValidHandle(
-	TRACED_HOOK_HANDLE InTracedHandle,
-	PLOCAL_HOOK_INFO* OutHandle);
+    TRACED_HOOK_HANDLE InTracedHandle,
+    PLOCAL_HOOK_INFO* OutHandle);
 
 BOOL IsLoaderLock();
 BOOL AcquireSelfProtection();
@@ -728,8 +728,8 @@ void RtlSetLastError(LONG InCode, LONG InNtStatus, WCHAR* InMessage);
 
 typedef struct _RTL_SPIN_LOCK_
 {
-	pthread_mutex_t         Lock;
-	BOOL                    IsOwned;
+    pthread_mutex_t         Lock;
+    BOOL                    IsOwned;
 }RTL_SPIN_LOCK;
 
 void RtlInitializeLock(RTL_SPIN_LOCK* InLock);
@@ -748,64 +748,64 @@ int detour_get_page_size();
 
 typedef struct _RUNTIME_INFO_
 {
-	// "true" if the current thread is within the related hook handler
-	BOOL            IsExecuting;
-	// the hook this information entry belongs to... This allows a per thread and hook storage!
-	DWORD           HLSIdent;
-	// the return address of the current thread's hook handler...
-	void*           RetAddress;
-	// the address of the return address of the current thread's hook handler...
-	void**          AddrOfRetAddr;
+    // "true" if the current thread is within the related hook handler
+    BOOL            IsExecuting;
+    // the hook this information entry belongs to... This allows a per thread and hook storage!
+    DWORD           HLSIdent;
+    // the return address of the current thread's hook handler...
+    void*           RetAddress;
+    // the address of the return address of the current thread's hook handler...
+    void**          AddrOfRetAddr;
 }RUNTIME_INFO;
 
 typedef struct _THREAD_RUNTIME_INFO_
 {
-	RUNTIME_INFO*		Entries;
-	RUNTIME_INFO*		Current;
-	void*				Callback;
-	BOOL				IsProtected;
+    RUNTIME_INFO*        Entries;
+    RUNTIME_INFO*        Current;
+    void*                Callback;
+    BOOL                 IsProtected;
 }THREAD_RUNTIME_INFO, *LPTHREAD_RUNTIME_INFO;
 
 typedef struct _THREAD_LOCAL_STORAGE_
 {
-	THREAD_RUNTIME_INFO		Entries[MAX_THREAD_COUNT];
-	DWORD					IdList[MAX_THREAD_COUNT];
-	RTL_SPIN_LOCK			ThreadSafe;
+    THREAD_RUNTIME_INFO      Entries[MAX_THREAD_COUNT];
+    DWORD                    IdList[MAX_THREAD_COUNT];
+    RTL_SPIN_LOCK            ThreadSafe;
 }THREAD_LOCAL_STORAGE;
 
 typedef struct _BARRIER_UNIT_
 {
-	HOOK_ACL				GlobalACL;
-	BOOL					IsInitialized;
-	THREAD_LOCAL_STORAGE	TLS;
+    HOOK_ACL                GlobalACL;
+    BOOL                    IsInitialized;
+    THREAD_LOCAL_STORAGE    TLS;
 }BARRIER_UNIT;
 
 
 BOOL TlsGetCurrentValue(
-	THREAD_LOCAL_STORAGE* InTls,
-	THREAD_RUNTIME_INFO** OutValue);
+    THREAD_LOCAL_STORAGE* InTls,
+    THREAD_RUNTIME_INFO** OutValue);
 BOOL TlsAddCurrentThread(THREAD_LOCAL_STORAGE* InTls);
 
 void RtlFreeMemory(void* InPointer);
 
 void* RtlAllocateMemory(
-	BOOL InZeroMemory,
-	ULONG InSize);
+    BOOL InZeroMemory,
+    ULONG InSize);
 
 #undef RtlCopyMemory
 void RtlCopyMemory(
-	PVOID InDest,
-	PVOID InSource,
-	ULONG InByteCount);
+    PVOID InDest,
+    PVOID InSource,
+    ULONG InByteCount);
 
 #undef RtlZeroMemory
 void RtlZeroMemory(
-	PVOID InTarget,
-	ULONG InByteCount);
+    PVOID InTarget,
+    ULONG InByteCount);
 
 BOOL IsThreadIntercepted(
-	HOOK_ACL* LocalACL,
-	ULONG InThreadID);
+    HOOK_ACL* LocalACL,
+    ULONG InThreadID);
 void ReleaseSelfProtection();
 
 extern BARRIER_UNIT         Unit;
