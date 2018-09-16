@@ -3904,7 +3904,7 @@ protected:
 
     BYTE    m_rbScratchDst[64];
 
-    static const COPYENTRY s_rceCopyTable[0xA2];
+    static const COPYENTRY s_rceCopyTable[0xB2];
 };
 
 LONG CDetourDis32::DecodeBranch5(ULONG opcode)
@@ -4061,15 +4061,10 @@ ULONG CDetourDis32::EncodeBranch24(ULONG originalOpCode, LONG delta, BOOL fLink)
         return 0;
     }
 
-    Branch24& branch = (Branch24&)(originalOpCode);
-    Branch24Target& target = (Branch24Target&)(delta);
+    DirectBranch& branch = (DirectBranch&)(originalOpCode);
 
-    branch.Imm11 = target.Imm11;
-    branch.Imm10 = target.Imm10;
+    branch.Offset = delta >> 2;
     branch.Link = fLink;
-    branch.Sign = target.Sign;
-    branch.J1 = ~(target.I1 ^ branch.Sign);
-    branch.J2 = ~(target.I2 ^ branch.Sign);
 
     return (ULONG&)branch;
 }
@@ -4165,7 +4160,7 @@ USHORT CDetourDis32::CalculateExtra(BYTE sourceLength, BYTE* pDestStart, BYTE* p
     return static_cast<USHORT>((destinationLength > sourceLength) ? (destinationLength - sourceLength) : 0);
 }
 
-const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[0xA2] =
+const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[0xB2] =
 {
     // Shift by immediate, move register
     // ToDo: Not handling moves from PC
@@ -4371,6 +4366,22 @@ const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[0xA2] =
     { NULL },
     { NULL },
     /* 0b01011001 */{ 0xA0, &CDetourDis32::CopyBranch24 },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    /* 0b01011001 */{ 0xB0, &CDetourDis32::CopyBranch24 },
 { 0, NULL }
 };
 
@@ -4758,8 +4769,14 @@ static inline bool IsRelInstruction(DWORD opcode)
     // LDR, ADD, B, BL instructions are relative for ARM mode
     return ((opcode & 0x0c000000) == 0x04000000
         && (opcode & 0xf0000000) != 0xf0000000
-        && (opcode & 0x000f0000) == 0x000f0000)
-        || (opcode & 0x0f000000) == 0x0a000000;
+        && (opcode & 0x000f0000) == 0x000f0000
+        // B XXX
+        || (opcode & 0x0f000000) == 0x0A000000
+        // BL (imm)
+        || (opcode & 0x0f000000) == 0x0B000000
+        // BLX (imm)
+        || (opcode & 0xfe000000) == 0xfa000000
+        );
 }
 
 PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
