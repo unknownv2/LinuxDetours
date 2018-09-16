@@ -10,20 +10,50 @@ __asm__ __volatile__
 Trampoline_ASM_x64:
 
 NETIntro:
-    ## void*            NETEntry // fixed 0 (0)
-    .byte 0, 0, 0, 0, 0, 0, 0, 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0 
 OldProc:
-    ## void*            NETEntry // fixed 0 (0)
-    .byte 0, 0, 0, 0, 0, 0, 0, 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
 NewProc:
-    ## void*            NETEntry // fixed 0 (0)
-    .byte 0, 0, 0, 0, 0, 0, 0, 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
 NETOutro:
-    ## void*            NETEntry // fixed 0 (0)
-    .byte 0, 0, 0, 0, 0, 0, 0, 0
-IsExecutedPtr:
-    ## void*            NETEntry // fixed 0 (0)
-    .byte 0, 0, 0, 0, 0, 0, 0, 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+IsExecutedPtr: 
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0
 
 trampoline_template_x64:
 
