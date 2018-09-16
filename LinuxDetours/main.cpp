@@ -63,20 +63,51 @@ __attribute__((naked)) long add()
         "ret"); /* Basic assembler statements are supported. */
 }
 #endif
+#if defined(_ARM_)
 
 void test_generic_constraints(int var, int var32, long var64) {
 
     asm("ldr %0, %1" : "=r"(var32) : "m"(var));
     asm("ldr %0, [%1]" : "=r"(var64) : "r"(&var));
     asm("ldr r0, label_1;"
-        "nop;"
+        "b label_2;"
+        "bl label_2;"
         "nop;"
         "label_1:"
-        ".word 0x01020304");
+        ".word 0x01020304;"
+        "label_2:"
+        "mov r0, 0;"
+        "mov r1, 1;"
+        "mov r2, 2;"
+        "dmb ish;"
+        "bx lr;"
+    );
 
     // CHECK: call i32 asm "ldr $0, $1", "=r,*m"(i64* @var)
     // CHECK: call i64 asm "ldr $0, [$1]", "=r,r"(i64* @var)
 }
+void test_generic_constraints_dest(int var, int var32, long var64) {
+
+    asm("ldr %0, %1" : "=r"(var32) : "m"(var));
+    asm("ldr %0, [%1]" : "=r"(var64) : "r"(&var));
+    asm("ldr r0, label_11;"
+        "b label_21;"
+        "bl label_21;"
+        "nop;"
+        "label_11:"
+        ".word 0x01020304;"
+        "label_21:"
+        "mov r0, 0;"
+        "mov r1, 1;"
+        "mov r2, 2;"
+        "dmb ish;"
+        "bx lr;"
+    );
+
+    // CHECK: call i32 asm "ldr $0, $1", "=r,*m"(i64* @var)
+    // CHECK: call i64 asm "ldr $0, [$1]", "=r,r"(i64* @var)
+}
+#endif
 VOID* TestSleep(void*)
 {
     LOG(INFO) << "detours: TestDetourB returned " << TestDetourB(1, 2, 3, 4, 5, 6);
@@ -174,10 +205,29 @@ int main(int argc, char * argv[])
     //sleep(1);
     //LhInstallHook((void*)DetourUpdateThread, (void*)DetDetourUpdateThread, &selfHandle2, outHandle2);
     
-    //LhInstallHook((void*)sleep, (void*)sleep_detour, &selfHandle2, outHandle2);
-    LhInstallHook((void*)0x0001bf0c, (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
+#ifdef DETOURS_ARM
+#ifdef DETOURS_ARM32
+    // BL XXX instruction
+    LhInstallHook((unsigned char*)test_generic_constraints + 0x30,
+        (void*)test_generic_constraints_dest, &selfHandle2, outHandle2);
+    // B XXX instruction
+    LhInstallHook((unsigned char*)test_generic_constraints + 0x2C,
+        (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
+    // LDR r0, [PC + XXX] instruction
+    LhInstallHook((unsigned char*)test_generic_constraints + 0x28,
+        (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
+#else
+    // B XXX instruction
+    LhInstallHook((unsigned char*)test_generic_constraints + 0x20, 
+        (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
+    // LDR r0, [PC + XXX] instruction
+    LhInstallHook((unsigned char*)test_generic_constraints + 0x1C, 
+        (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
+#endif
+#endif
 
     LhInstallHook((void*)TestDetourB, (void*)TestDetourA, &selfHandle, outHandle);
+    LhInstallHook((void*)sleep, (void*)sleep_detour, &selfHandle2, outHandle2);
 
     ULONG ret = LhSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle);
     ret = LhSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle2);
