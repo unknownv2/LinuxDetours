@@ -879,7 +879,7 @@ const BYTE CDetourDis::s_rbModRm[256] = {
 
 const CDetourDis::COPYENTRY CDetourDis::s_rceCopyTable[257] =
 {
-    { 0x00, ENTRY_CopyBytes2Mod },                      // ADD /r
+{ 0x00, ENTRY_CopyBytes2Mod },                      // ADD /r
 { 0x01, ENTRY_CopyBytes2Mod },                      // ADD /r
 { 0x02, ENTRY_CopyBytes2Mod },                      // ADD /r
 { 0x03, ENTRY_CopyBytes2Mod },                      // ADD /r
@@ -1561,7 +1561,7 @@ BOOL CDetourDis::SanityCheckSystem()
 // Compile DETOUR_IA64_BUNDLE for native IA64 or cross, but not both -- we get duplicates otherwise.
 const DETOUR_IA64_BUNDLE::DETOUR_IA64_METADATA DETOUR_IA64_BUNDLE::s_rceCopyTable[33] =
 {
-    { 0x00, M_UNIT,      I_UNIT,      I_UNIT, },
+{ 0x00, M_UNIT,      I_UNIT,      I_UNIT, },
 { 0x01, M_UNIT,      I_UNIT,      I_UNIT, },
 { 0x02, M_UNIT,      I_UNIT,      I_UNIT, },
 { 0x03, M_UNIT,      I_UNIT,      I_UNIT, },
@@ -3904,7 +3904,7 @@ protected:
 
     BYTE    m_rbScratchDst[64];
 
-    static const COPYENTRY s_rceCopyTable[0x5B];
+    static const COPYENTRY s_rceCopyTable[0xA2];
 };
 
 LONG CDetourDis32::DecodeBranch5(ULONG opcode)
@@ -4040,23 +4040,18 @@ ULONG CDetourDis32::EncodeBranch20(ULONG originalOpCode, LONG delta)
 
 LONG CDetourDis32::DecodeBranch24(ULONG opcode, BOOL& fLink)
 {
-    Branch24& branch = (Branch24&)(opcode);
+    DirectBranch& branch = (DirectBranch&)(opcode);
 
-    Branch24Target target;
+    DirectBranch target;
     ZeroMemory(&target, sizeof(target));
-    target.Imm11 = branch.Imm11;
-    target.Imm10 = branch.Imm10;
-    target.Sign = branch.Sign;
-    target.I1 = ~(branch.J1 ^ target.Sign);
-    target.I2 = ~(branch.J2 ^ target.Sign);
+    target.Offset = branch.Offset;
+    target.Link = branch.Link;
+    target.Padding = branch.Padding;
+    target.Condition = branch.Condition;
     fLink = branch.Link;
 
-    // Sign extend
-    if (target.Sign) {
-        target.Padding2 = -1;
-    }
 
-    return (LONG&)target;
+    return (LONG)(target.Offset << 2);
 }
 
 ULONG CDetourDis32::EncodeBranch24(ULONG originalOpCode, LONG delta, BOOL fLink)
@@ -4154,7 +4149,7 @@ BYTE CDetourDis32::EmitLongLiteralLoad(PDWORD& pDest, BYTE targetRegister, PVOID
 BYTE CDetourDis32::EmitLongBranch(PDWORD& pDest, PVOID pTarget)
 {
     // Emit a long literal load into PC
-    BYTE size = EmitLongLiteralLoad(pDest, c_PC, DETOURS_PBYTE_TO_PFUNC(pTarget));
+    BYTE size = EmitLongLiteralLoad(pDest, c_PC, pTarget);
     return size;
 }
 
@@ -4170,7 +4165,7 @@ USHORT CDetourDis32::CalculateExtra(BYTE sourceLength, BYTE* pDestStart, BYTE* p
     return static_cast<USHORT>((destinationLength > sourceLength) ? (destinationLength - sourceLength) : 0);
 }
 
-const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[0x5B] =
+const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[0xA2] =
 {
     // Shift by immediate, move register
     // ToDo: Not handling moves from PC
@@ -4305,6 +4300,77 @@ const CDetourDis32::COPYENTRY CDetourDis32::s_rceCopyTable[0x5B] =
     /* 0b */{ 0x57, &CDetourDis32::BeginCopy32 },
     /* 0b */{ 0x58, &CDetourDis32::BeginCopy32 },
     /* 0b01011001 */{ 0x59, &CDetourDis32::CopyLiteralLoad32 },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    { NULL },
+    /* 0b01011001 */{ 0xA0, &CDetourDis32::CopyBranch24 },
 { 0, NULL }
 };
 
@@ -4690,9 +4756,10 @@ CDetourDis32::CDetourDis32()
 static inline bool IsRelInstruction(DWORD opcode)
 {
     // LDR, ADD, B, BL instructions are relative for ARM mode
-    return (opcode & 0x0c000000) == 0x04000000
+    return ((opcode & 0x0c000000) == 0x04000000
         && (opcode & 0xf0000000) != 0xf0000000
-        && (opcode & 0x000f0000) == 0x000f0000;
+        && (opcode & 0x000f0000) == 0x000f0000)
+        || (opcode & 0x0f000000) == 0x0a000000;
 }
 
 PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
