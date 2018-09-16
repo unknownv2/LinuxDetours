@@ -157,7 +157,7 @@ NETIntro:        /* .NET Barrier Intro Function */
         .byte 0
         .byte 0
         .byte 0
-        .byte 0        
+        .byte 0
 OldProc:        /* Original Replaced Function */
         .byte 0
         .byte 0
@@ -166,7 +166,7 @@ OldProc:        /* Original Replaced Function */
         .byte 0
         .byte 0
         .byte 0
-        .byte 0        
+        .byte 0
 NewProc:        /* Detour Function */
         .byte 0
         .byte 0
@@ -175,7 +175,7 @@ NewProc:        /* Detour Function */
         .byte 0
         .byte 0
         .byte 0
-        .byte 0        
+        .byte 0
 NETOutro:       /* .NET Barrier Outro Function */
         .byte 0
         .byte 0
@@ -184,7 +184,7 @@ NETOutro:       /* .NET Barrier Outro Function */
         .byte 0
         .byte 0
         .byte 0
-        .byte 0        
+        .byte 0
 IsExecutedPtr:  /* Count of times trampoline was executed */
         .byte 0
         .byte 0
@@ -195,7 +195,7 @@ IsExecutedPtr:  /* Count of times trampoline was executed */
         .byte 0
         .byte 0
 
-trampoline_template_arm64:  
+trampoline_template_arm64:
   
 start:     
         stp     x29, x30, [sp, #-16]!
@@ -209,9 +209,9 @@ start:
         stp     x2, x3, [sp, #(8*16+2*8)]
         stp     x4, x5, [sp, #(8*16+4*8)]
         stp     x6, x7, [sp, #(8*16+6*8)]
-        str     x8,     [sp, #(8*16+8*8)]            
+        str     x8,     [sp, #(8*16+8*8)]
 
-        ldr     x10, IsExecutedPtr            
+        ldr     x10, IsExecutedPtr
 try_inc_lock:       
         ldxr    w0, [x10]
         add     w0, w0, #1
@@ -219,14 +219,14 @@ try_inc_lock:
         cbnz    w1, try_inc_lock
         ldr     x1, NewProc
         cbnz    x1, call_net_entry
-/* call original method  */    
+/* call original method  */
 try_dec_lock:       
         ldxr    w0, [x10]
         add     w0, w0, #-1
         stxr    w1, w0, [x10]
         cbnz    x1, try_dec_lock
         ldr     x10, OldProc
-        b       trampoline_exit        
+        b       trampoline_exit
 /* call hook handler or original method... */
 call_net_entry:
         adr     x0, start /* call NET intro */
@@ -234,7 +234,7 @@ call_net_entry:
         ldr     x1, [sp, #(10*8 + 8*16) + 8] /* return address (value stored in original sp) */
         ldr     x10, NETIntro  
         blr     x10 /* Hook->NETIntro(Hook, RetAddr, InitialSP)*/
-/* should call original method?      */        
+/* should call original method?      */
         cbnz    x0, call_hook_handler
 
 /* call original method */
@@ -292,7 +292,7 @@ try_dec_lock3:
         ldp     x8, x30,[sp, #(8*16+8*8)]
         add     sp, sp, #(10*8 + 8*16)
 
-/* finally return to saved return address - the caller of this trampoline...  */       
+/* finally return to saved return address - the caller of this trampoline...  */
         ret
 
 trampoline_exit:
@@ -309,7 +309,7 @@ trampoline_exit:
         ldp     x29, x30, [sp], #16
         br      x10
 
-/* outro signature, to automatically determine code size   */     
+/* outro signature, to automatically determine code size   */
 trampoline_data_arm_64:
         .word 0x12345678
 )");
