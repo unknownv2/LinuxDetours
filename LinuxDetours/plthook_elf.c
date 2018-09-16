@@ -269,7 +269,7 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *data) {
       for (phdr_idx = 0; phdr_idx < info->dlpi_phnum; ++phdr_idx) {
           const Elf_Phdr *phdr = &info->dlpi_phdr[phdr_idx];
           if (phdr->p_type == PT_DYNAMIC) {
-              struct link_map* lmap = malloc(sizeof(struct link_map));
+              struct link_map* lmap = (struct link_map*)malloc(sizeof(struct link_map));
               lmap->l_addr = info->dlpi_addr;
               lmap->l_name = strdup(dlpi_name_abs);
               lmap->l_ld = (Elf_Dyn*)(info->dlpi_addr + phdr->p_vaddr);
@@ -720,7 +720,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     }
 #endif
 
-    *plthook_out = malloc(sizeof(plthook_t));
+    *plthook_out = (plthook_t*)malloc(sizeof(plthook_t));
     if (*plthook_out == NULL) {
         set_errmsg("failed to allocate memory: %" SIZE_T_FMT " bytes", sizeof(plthook_t));
         return PLTHOOK_OUT_OF_MEMORY;
