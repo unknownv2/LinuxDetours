@@ -3849,8 +3849,7 @@ protected:
 
     BYTE EmitLongInstruction(PDWORD& pDstInst, ULONG instruction)
     {
-        *pDstInst++ = (USHORT)(instruction >> 16);
-        *pDstInst++ = (USHORT)instruction;
+        *pDstInst++ = instruction;
         return sizeof(ULONG);
     }
 
@@ -4117,15 +4116,14 @@ LONG CDetourDis32::DecodeLiteralLoad12(ULONG instruction)
 
 BYTE CDetourDis32::EmitLiteralLoad12(PDWORD& pDest, BYTE targetRegister, PBYTE pLiteral)
 {
-    // Note: We add 2 (which gets rounded down) because literals must be 32-bit
-    //       aligned, but the ldr can be 16-bit aligned.
-    LONG newDelta = CalculateNewDelta((PBYTE)pLiteral + 2, (PBYTE)pDest);
+    LONG newDelta = CalculateNewDelta((PBYTE)pLiteral, (PBYTE)pDest);
     LONG relative = ((newDelta > 0 ? newDelta : -newDelta) & 0xFFF);
 
     LiteralLoad12Target& target = (LiteralLoad12Target&)(relative);
     //target.Imm12 -= target.Imm12 & 3;
     //LiteralLoad12 load = { target.Imm12, targetRegister, 0x5F, (DWORD)(newDelta > 0),  0xF8 };
-    SingleDataTransfer load2 = { target.Imm12, targetRegister, c_PC, 1, 0, 0, 0, 1, 0, 0x01, 0x0E };
+    SingleDataTransfer load2 = { target.Imm12, targetRegister, c_PC, 1, 0, 0, 
+        (DWORD)(newDelta > 0 ? 1 : 0), 1, 0, 0x01, 0x0E };
 
     return EmitLongInstruction(pDest, (ULONG&)load2);
 }
@@ -4716,7 +4714,7 @@ PBYTE CDetourDis32::CopyInstruction(PBYTE pDst,
     ULONG opCode = GetLongInstruction(pSrc);
 
     if (IsRelInstruction(opCode)) {
-            SingleDataTransfer& ins = (SingleDataTransfer&)opCode;
+        SingleDataTransfer& ins = (SingleDataTransfer&)opCode;
 
         REFCOPYENTRY pEntry = &s_rceCopyTable[(opCode >> 0x14) & 0xFF];
         ULONG size = (this->*pEntry->pfCopy)(pSrc, pDst);

@@ -1892,11 +1892,6 @@ void* BarrierOutro(DETOUR_TRAMPOLINE* InHandle, void** InAddrOfRetAddr)
     return InHandle;
 }
 
-static TRACED_HOOK_HANDLE           LastOutHandle = NULL;
-void* DetourGetLastHandle()
-{
-    return LastOutHandle;
-}
 TRACED_HOOK_HANDLE DetourGetHookHandleForFunction(PDETOUR_TRAMPOLINE pTrampoline)
 {
     if (pTrampoline != NULL) {
@@ -1921,7 +1916,7 @@ VOID InsertTraceHandle(PDETOUR_TRAMPOLINE pTrampoline)
 
         TRACED_HOOK_HANDLE OutHandle = new HOOK_TRACE_INFO();
 
-        LastOutHandle = pTrampoline->OutHandle = OutHandle;
+        pTrampoline->OutHandle = OutHandle;
 
         OutHandle->Link = pTrampoline;
     }
