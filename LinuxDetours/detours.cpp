@@ -2346,7 +2346,6 @@ LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
             o->pTrampoline->IsExecutedPtr = new int();
 
             detour_gen_jmp_indirect(o->pTrampoline->rbCodeIn, (PBYTE*)&o->pTrampoline->Trampoline);
-            //detour_gen_jmp_indirect(o->pTrampoline->rbCodeIn, &o->pTrampoline->pbDetour);
             PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, o->pTrampoline->rbCodeIn);
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
             *o->ppbPointer = o->pTrampoline->rbCode;
@@ -2379,20 +2378,18 @@ LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
                 {
                 /*Handle*/            case 0x1A2B3C05: *((ULONG*)Ptr) = (ULONG)o->pTrampoline; break;
                 /*UnmanagedIntro*/    case 0x1A2B3C03: *((ULONG*)Ptr) = (ULONG)o->pTrampoline->HookIntro; break;
-                /*OldProc*/            case 0x1A2B3C01: *((ULONG*)Ptr) = (ULONG)o->pTrampoline->OldProc; break;
-                /*Ptr:NewProc*/        case 0x1A2B3C07: *((ULONG*)Ptr) = (ULONG)&o->pTrampoline->HookProc; break;
-                /*NewProc*/            case 0x1A2B3C00: *((ULONG*)Ptr) = (ULONG)o->pTrampoline->HookProc; break;
+                /*OldProc*/           case 0x1A2B3C01: *((ULONG*)Ptr) = (ULONG)o->pTrampoline->OldProc; break;
+                /*Ptr:NewProc*/       case 0x1A2B3C07: *((ULONG*)Ptr) = (ULONG)&o->pTrampoline->HookProc; break;
+                /*NewProc*/           case 0x1A2B3C00: *((ULONG*)Ptr) = (ULONG)o->pTrampoline->HookProc; break;
                 /*UnmanagedOutro*/    case 0x1A2B3C06: *((ULONG*)Ptr) = (ULONG)o->pTrampoline->HookOutro; break;
                 /*IsExecuted*/        case 0x1A2B3C02: *((ULONG*)Ptr) = (ULONG)o->pTrampoline->IsExecutedPtr; break;
-                /*RetAddr*/            case 0x1A2B3C04: *((ULONG*)Ptr) = (ULONG)((PBYTE)o->pTrampoline->Trampoline + 92); break;
+                /*RetAddr*/           case 0x1A2B3C04: *((ULONG*)Ptr) = (ULONG)((PBYTE)o->pTrampoline->Trampoline + 92); break;
                 }
 
                 Ptr++;
             }
 
             PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, (PBYTE)o->pTrampoline->Trampoline);
-
-            //PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, o->pTrampoline->pbDetour);
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
             *o->ppbPointer = o->pTrampoline->rbCode;
             UNREFERENCED_PARAMETER(pbCode);
@@ -2438,21 +2435,19 @@ LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
             o->pTrampoline->IsExecutedPtr = new int();
             PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget + o->pTrampoline->IsThumbTarget, NULL,
                 (PBYTE)o->pTrampoline->Trampoline + arm_to_thunk_code_size_offset);
-            // PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, o->pTrampoline->pbDetour);
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
     
             UNREFERENCED_PARAMETER(pbCode);
 #endif // DETOURS_ARM
 
 #ifdef DETOURS_ARM64
-            UCHAR * trampolineStart = DetourGetArmTrampolinePtr(NULL);// DetourGetTrampolinePtr();
-            const ULONG TrampolineSize = GetTrampolineSize(NULL);// GetTrampolineSize();
+            UCHAR * trampolineStart = DetourGetArmTrampolinePtr(NULL);
+            const ULONG TrampolineSize = GetTrampolineSize(NULL);
             if (TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE) {
                 //error, handle this better
                 DETOUR_TRACE(("detours: TrampolineSize > DETOUR_TRAMPOLINE_CODE_SIZE (%08X != %08X)", 
                     TrampolineSize, DETOUR_TRAMPOLINE_CODE_SIZE));
                 LOG(FATAL) << "Invalid trampoline size: " << TrampolineSize;
-
             }
             PBYTE endOfTramp = (PBYTE)&o->pTrampoline->rbTrampolineCode;
             memcpy(endOfTramp, trampolineStart, TrampolineSize);
@@ -2464,8 +2459,6 @@ LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
             o->pTrampoline->HookProc = o->pTrampoline->pbDetour;
             o->pTrampoline->IsExecutedPtr = new int();
             PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, (PBYTE)o->pTrampoline->Trampoline);
-
-            //PBYTE pbCode = detour_gen_jmp_immediate(o->pbTarget, NULL, o->pTrampoline->pbDetour);
             pbCode = detour_gen_brk(pbCode, o->pTrampoline->pbRemain);
             *o->ppbPointer = o->pTrampoline->rbCode;
             UNREFERENCED_PARAMETER(pbCode);
@@ -2602,11 +2595,9 @@ LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
     // Restore all of the page permissions and flush the icache.
     //HANDLE hProcess = GetCurrentProcess();
     for (o = s_pPendingOperations; o != NULL;) {
-        // We don't care if this fails, because the code is still accessible.
 
+        // We don't care if this fails, because the code is still accessible.
         mprotect(detour_get_page(o->pbTarget), detour_get_page_size(), PAGE_EXECUTE_READ);
-        //VirtualProtect(o->pbTarget, o->pTrampoline->cbRestore, o->dwPerm, &dwOld);
-        //FlushInstructionCache(hProcess, o->pbTarget, o->pTrampoline->cbRestore);
 
         if (o->fIsRemove && o->pTrampoline) {
             detour_free_trampoline(o->pTrampoline);
