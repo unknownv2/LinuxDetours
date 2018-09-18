@@ -1,10 +1,10 @@
 #pragma once
 
-#ifndef GTEST_SAMPLES_SAMPLE1_H_
-#define GTEST_SAMPLES_SAMPLE1_H_
+#ifndef DETOURS_TEST_H_
+#define DETOURS_TEST_H_
 
 bool HookTest(void);
 
 
-#endif  // GTEST_SAMPLES_SAMPLE1_H_
+#endif  // DETOURS_TEST_H_
 
