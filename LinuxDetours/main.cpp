@@ -1,6 +1,7 @@
 #include <cstdio>
 #include "detours.h"
 #include <glog/logging.h>
+#include <memory>
 
 static unsigned int(* TrueSleepEx)(unsigned int seconds) = sleep;
 
@@ -175,6 +176,11 @@ void* DetourSetSystemRegionLowerBound_detour(void * bound)
 }
 int temp = 4;
 int s_temp[0x20] = { 0 };
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 int main(int argc, char * argv[])
 {
@@ -197,10 +203,8 @@ int main(int argc, char * argv[])
 
     DetourCriticalInitialize();
 
-    LONG selfHandle = 0;
-    LONG selfHandle2 = 0;
-    TRACED_HOOK_HANDLE outHandle = new HOOK_TRACE_INFO();
-    TRACED_HOOK_HANDLE outHandle2 = new HOOK_TRACE_INFO();
+    auto outHandle = make_unique<HOOK_TRACE_INFO>();
+    auto outHandle2 = make_unique<HOOK_TRACE_INFO>();
     
     //sleep(1);
     //DetourInstallHook((void*)DetourUpdateThread, (void*)DetDetourUpdateThread, &selfHandle2, outHandle2);
@@ -226,22 +230,18 @@ int main(int argc, char * argv[])
 #endif
 #endif
 
-    DetourInstallHook((void*)TestDetourB, (void*)TestDetourA, &selfHandle, outHandle);
-    DetourInstallHook((void*)sleep, (void*)sleep_detour, &selfHandle2, outHandle2);
+    DetourInstallHook((void*)TestDetourB, (void*)TestDetourA, NULL, outHandle.get());
+    DetourInstallHook((void*)sleep, (void*)sleep_detour, NULL, outHandle2.get());
 
-    ULONG ret = DetourSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle);
-    ret = DetourSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle2);
+    ULONG ret = DetourSetExclusiveACL(new ULONG(), 1, outHandle.get());
+    ret = DetourSetExclusiveACL(new ULONG(), 1, outHandle2.get());
 
     pthread_t t;
     pthread_create(&t, NULL, TestSleep, NULL);
     pthread_join(t, NULL);
 
-
-    DetourUninstallHook(outHandle);
-    DetourUninstallHook(outHandle2);
-
-    delete outHandle;
-    delete outHandle2;
+    DetourUninstallHook(outHandle.get());
+    DetourUninstallHook(outHandle2.get());
 
     sleep(1);
 

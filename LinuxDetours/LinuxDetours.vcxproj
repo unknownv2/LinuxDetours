@@ -240,6 +240,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_AMD64_;_UNIX64</PreprocessorDefinitions>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalOptions>-lpthread -ldl -lglog %(AdditionalOptions)</AdditionalOptions>
