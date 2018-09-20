@@ -199,7 +199,7 @@
     <RemoteLdToolExe>clang++</RemoteLdToolExe>
     <RemoteCCompileToolExe>clang++</RemoteCCompileToolExe>
     <RemoteCppCompileToolExe>clang++</RemoteCppCompileToolExe>
-    <IncludePath>C:\Users\Thierry\Documents\Visual Studio 2017\Projects\LinuxDetours\LinuxDetours\include;/usr/local/include;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>/usr/local/lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-ARM64|ARM'">
