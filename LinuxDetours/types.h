@@ -148,13 +148,13 @@ typedef unsigned long long DWORD64, *PDWORD64;
 
 #define RtlZeroMemory(Destination,Length) memset((Destination),0,(Length))
 #define ZeroMemory RtlZeroMemory
-#define NO_ERROR 0
+#define NO_ERROR                         0
 #define ERROR_INVALID_DATA               13L
 #if !defined(UNALIGNED)
 #define UNALIGNED
 #endif
 
-#define UNREFERENCED_PARAMETER(P)          \
+#define UNREFERENCED_PARAMETER(P)        \
     /*lint -save -e527 -e530 */ \
     { \
         (P) = (P); \
@@ -165,28 +165,28 @@ typedef unsigned long long DWORD64, *PDWORD64;
 #define _In_
 
 #define CALLBACK    __stdcall
-#define WINAPI      //__stdcall
+#define WINAPI      
 #define WINAPIV     __cdecl
 #define APIENTRY    WINAPI
 #define APIPRIVATE  __stdcall
 #define PASCAL      __stdcall
 
-#define STATUS_SUCCESS 0
-#define STATUS_NOT_SUPPORTED 1
-#define STATUS_INVALID_PARAMETER_1 1
-#define STATUS_INVALID_PARAMETER_2 2
-#define STATUS_INVALID_PARAMETER_3 3
-#define STATUS_INVALID_PARAMETER_4 4
-#define STATUS_INTERNAL_ERROR 0
-#define STATUS_NO_MEMORY 0
+#define STATUS_SUCCESS                   0
+#define STATUS_NOT_SUPPORTED             1
+#define STATUS_INVALID_PARAMETER_1       1
+#define STATUS_INVALID_PARAMETER_2       2
+#define STATUS_INVALID_PARAMETER_3       3
+#define STATUS_INVALID_PARAMETER_4       4
+#define STATUS_INTERNAL_ERROR            0
+#define STATUS_NO_MEMORY                 0
 
-#define STATUS_TIMEOUT 1
-#define STATUS_INSUFFICIENT_RESOURCES 1
-#define STATUS_INVALID_PARAMETER         ((DWORD   )0xC000000DL)
-#define PAGE_EXECUTE_READWRITE  PROT_EXEC | PROT_READ  | PROT_WRITE
-#define PAGE_READONLY  PROT_READ
-#define PAGE_READWRITE  PROT_READ | PROT_WRITE
-#define PAGE_EXECUTE_READ  PROT_EXEC | PROT_READ
+#define STATUS_TIMEOUT                   1
+#define STATUS_INSUFFICIENT_RESOURCES    1
+#define STATUS_INVALID_PARAMETER         ((DWORD)0xC000000DL)
+#define PAGE_EXECUTE_READWRITE           PROT_EXEC | PROT_READ  | PROT_WRITE
+#define PAGE_READONLY                    PROT_READ
+#define PAGE_READWRITE                   PROT_READ | PROT_WRITE
+#define PAGE_EXECUTE_READ                PROT_EXEC | PROT_READ
 
 
 /* common constants */
