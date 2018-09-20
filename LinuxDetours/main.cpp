@@ -193,9 +193,9 @@ int main(int argc, char * argv[])
     test_glog(argv[0]);
 
     //test_generic_constraints(s_temp[6], 1, 2);
-    LhBarrierProcessAttach();
+    DetourBarrierProcessAttach();
 
-    LhCriticalInitialize();
+    DetourCriticalInitialize();
 
     LONG selfHandle = 0;
     LONG selfHandle2 = 0;
@@ -203,50 +203,50 @@ int main(int argc, char * argv[])
     TRACED_HOOK_HANDLE outHandle2 = new HOOK_TRACE_INFO();
     
     //sleep(1);
-    //LhInstallHook((void*)DetourUpdateThread, (void*)DetDetourUpdateThread, &selfHandle2, outHandle2);
+    //DetourInstallHook((void*)DetourUpdateThread, (void*)DetDetourUpdateThread, &selfHandle2, outHandle2);
     
 #ifdef DETOURS_ARM
 #ifdef DETOURS_ARM32
     // BL XXX instruction
-    LhInstallHook((unsigned char*)test_generic_constraints + 0x30,
+    DetourInstallHook((unsigned char*)test_generic_constraints + 0x30,
         (void*)test_generic_constraints_dest, &selfHandle2, outHandle2);
     // B XXX instruction
-    LhInstallHook((unsigned char*)test_generic_constraints + 0x2C,
+    DetourInstallHook((unsigned char*)test_generic_constraints + 0x2C,
         (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
     // LDR r0, [PC + XXX] instruction
-    LhInstallHook((unsigned char*)test_generic_constraints + 0x28,
+    DetourInstallHook((unsigned char*)test_generic_constraints + 0x28,
         (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
 #else
     // B XXX instruction
-    LhInstallHook((unsigned char*)test_generic_constraints + 0x20, 
+    DetourInstallHook((unsigned char*)test_generic_constraints + 0x20, 
         (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
     // LDR r0, [PC + XXX] instruction
-    LhInstallHook((unsigned char*)test_generic_constraints + 0x1C, 
+    DetourInstallHook((unsigned char*)test_generic_constraints + 0x1C, 
         (void*)DetourSetSystemRegionLowerBound_detour, &selfHandle2, outHandle2);
 #endif
 #endif
 
-    LhInstallHook((void*)TestDetourB, (void*)TestDetourA, &selfHandle, outHandle);
-    LhInstallHook((void*)sleep, (void*)sleep_detour, &selfHandle2, outHandle2);
+    DetourInstallHook((void*)TestDetourB, (void*)TestDetourA, &selfHandle, outHandle);
+    DetourInstallHook((void*)sleep, (void*)sleep_detour, &selfHandle2, outHandle2);
 
-    ULONG ret = LhSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle);
-    ret = LhSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle2);
+    ULONG ret = DetourSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle);
+    ret = DetourSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)outHandle2);
 
     pthread_t t;
     pthread_create(&t, NULL, TestSleep, NULL);
     pthread_join(t, NULL);
 
 
-    LhUninstallHook(outHandle);
-    LhUninstallHook(outHandle2);
+    DetourUninstallHook(outHandle);
+    DetourUninstallHook(outHandle2);
 
     delete outHandle;
     delete outHandle2;
 
     sleep(1);
 
-    LhBarrierProcessDetach();
-    LhCriticalFinalize();
+    DetourBarrierProcessDetach();
+    DetourCriticalFinalize();
 
     return 0;
 }

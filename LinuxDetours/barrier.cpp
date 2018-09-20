@@ -183,7 +183,7 @@ void RtlAssert(BOOL InAssert, LPCWSTR lpMessageText)
 }
 
 
-LONG DetourExport LhSetGlobalInclusiveACL(
+LONG DetourExport DetourSetGlobalInclusiveACL(
     ULONG* InThreadIdList,
     ULONG InThreadCount)
 {
@@ -201,10 +201,10 @@ LONG DetourExport LhSetGlobalInclusiveACL(
     The count of entries listed in the thread ID list. This value must not exceed
     MAX_ACE_COUNT!
     */
-    return LhSetACL(LhBarrierGetAcl(), FALSE, InThreadIdList, InThreadCount);
+    return DetourSetACL(DetourBarrierGetAcl(), FALSE, InThreadIdList, InThreadCount);
 }
 
-LONG DetourExport LhSetGlobalExclusiveACL(
+LONG DetourExport DetourSetGlobalExclusiveACL(
     ULONG* InThreadIdList,
     ULONG InThreadCount)
 {
@@ -222,10 +222,10 @@ LONG DetourExport LhSetGlobalExclusiveACL(
     The count of entries listed in the thread ID list. This value must not exceed
     MAX_ACE_COUNT!
     */
-    return LhSetACL(LhBarrierGetAcl(), TRUE, InThreadIdList, InThreadCount);
+    return DetourSetACL(DetourBarrierGetAcl(), TRUE, InThreadIdList, InThreadCount);
 }
 
-BOOL LhIsValidHandle(
+BOOL DetourIsValidHandle(
     TRACED_HOOK_HANDLE InTracedHandle,
     PLOCAL_HOOK_INFO* OutHandle)
 {
@@ -245,7 +245,7 @@ BOOL LhIsValidHandle(
 
     return TRUE;
 }
-LONG LhSetACL(
+LONG DetourSetACL(
     HOOK_ACL* InAcl,
     BOOL InIsExclusive,
     ULONG* InThreadIdList,
@@ -305,12 +305,12 @@ LONG LhSetACL(
     return 0;
 }
 
-HOOK_ACL* LhBarrierGetAcl()
+HOOK_ACL* DetourBarrierGetAcl()
 {
     return &Unit.GlobalACL;
 }
 
-LONG DetourExport LhBarrierProcessAttach()
+LONG DetourExport DetourBarrierProcessAttach()
 {
     /*
     Description:
@@ -462,7 +462,7 @@ void TlsRemoveCurrentThread(THREAD_LOCAL_STORAGE* InTls)
     RtlReleaseLock(&InTls->ThreadSafe);
 }
 
-void LhBarrierProcessDetach()
+void DetourBarrierProcessDetach()
 {
     /*
     Description:
@@ -483,7 +483,7 @@ void LhBarrierProcessDetach()
     RtlZeroMemory(&Unit, sizeof(Unit));
 }
 
-void DetourExport LhBarrierThreadDetach()
+void DetourExport DetourBarrierThreadDetach()
 {
     /*
     Description:
@@ -505,7 +505,7 @@ void DetourExport LhBarrierThreadDetach()
 
 RTL_SPIN_LOCK               GlobalHookLock;
 
-void LhCriticalInitialize()
+void DetourCriticalInitialize()
 {
     /*
     Description:
@@ -516,7 +516,7 @@ void LhCriticalInitialize()
     RtlInitializeLock(&GlobalHookLock);
 }
 
-void LhCriticalFinalize()
+void DetourCriticalFinalize()
 {
     /*
     Description:
@@ -618,7 +618,7 @@ BOOL DetourExport IsThreadIntercepted(
     /*
     Description:
 
-    Please refer to LhIsThreadIntercepted() for more information.
+    Please refer to DetourIsThreadIntercepted() for more information.
 
     Returns:
 
@@ -664,14 +664,14 @@ BOOL DetourExport IsThreadIntercepted(
     }
 }
 
-LONG DetourExport LhBarrierGetCallback(PVOID* OutValue)
+LONG DetourExport DetourBarrierGetCallback(PVOID* OutValue)
 {
     /*
     Description:
 
     Is expected to be called inside a hook handler. Otherwise it
     will fail with STATUS_NOT_SUPPORTED. The method retrieves
-    the callback initially passed to the related LhInstallHook()
+    the callback initially passed to the related DetourInstallHook()
     call.
 
     */

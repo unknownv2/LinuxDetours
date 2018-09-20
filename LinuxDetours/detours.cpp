@@ -1746,7 +1746,7 @@ ULONGLONG BarrierIntro(DETOUR_TRAMPOLINE* InHandle, void* InRetAddr, void** InAd
         execute without intercepting the call...
         */
 
-        /*  !!Note that the assembler code does not invoke LhBarrierOutro() in this case!! */
+        /*  !!Note that the assembler code does not invoke DetourBarrierOutro() in this case!! */
 
         return FALSE;
     }
@@ -1770,7 +1770,7 @@ ULONGLONG BarrierIntro(DETOUR_TRAMPOLINE* InHandle, void* InRetAddr, void** InAd
     */
     if (!AcquireSelfProtection())
     {
-        /*  !!Note that the assembler code does not invoke LhBarrierOutro() in this case!! */
+        /*  !!Note that the assembler code does not invoke DetourBarrierOutro() in this case!! */
 
         return FALSE;
     }
@@ -1807,7 +1807,7 @@ ULONGLONG BarrierIntro(DETOUR_TRAMPOLINE* InHandle, void* InRetAddr, void** InAd
 
         I call this the "Thread deadlock barrier".
 
-        !!Note that the assembler code does not invoke LhBarrierOutro() in this case!!
+        !!Note that the assembler code does not invoke DetourBarrierOutro() in this case!!
         */
 
         goto DONT_INTERCEPT;
@@ -1951,13 +1951,13 @@ LONG AddTrampolineToGlobalList(PDETOUR_TRAMPOLINE pTrampoline)
     return Exists;
 }
 
-LONG DetourExport LhUninstallHook(TRACED_HOOK_HANDLE InHandle)
+LONG DetourExport DetourUninstallHook(TRACED_HOOK_HANDLE InHandle)
 {
     /*
     Description:
 
     Removes the given hook. To also release associated resources,
-    you will have to call LhWaitForPendingRemovals(). In any case
+    you will have to call DetourWaitForPendingRemovals(). In any case
     your hook handler will never be executed again, after calling this
     method.
 
@@ -1979,7 +1979,7 @@ LONG DetourExport LhUninstallHook(TRACED_HOOK_HANDLE InHandle)
 
     RtlAcquireLock(&GlobalHookLock);
     {
-        if ((InHandle->Link != NULL) && LhIsValidHandle(InHandle, &Hook))
+        if ((InHandle->Link != NULL) && DetourIsValidHandle(InHandle, &Hook))
         {
             DetourTransactionBegin();
             DetourUpdateThread(pthread_self());
@@ -2012,7 +2012,7 @@ FINALLY_OUTRO:
     return NtStatus;
 }
 
-LONG LhIsThreadIntercepted(
+LONG DetourIsThreadIntercepted(
     TRACED_HOOK_HANDLE InHook,
     ULONG InThreadID,
     BOOL* OutResult)
@@ -2029,7 +2029,7 @@ LONG LhIsThreadIntercepted(
     LONG                NtStatus;
     PLOCAL_HOOK_INFO    Handle;
 
-    if (!LhIsValidHandle(InHook, &Handle))
+    if (!DetourIsValidHandle(InHook, &Handle))
         THROW(-1, (PWCHAR)"The given hook handle is invalid or already disposed.");
 
     if (!IsValidPointer(OutResult, sizeof(BOOL)))
@@ -2044,7 +2044,7 @@ FINALLY_OUTRO:
     return NtStatus;
 }
 
-LONG LhSetInclusiveACL(
+LONG DetourSetInclusiveACL(
     ULONG* InThreadIdList,
     ULONG InThreadCount,
     TRACED_HOOK_HANDLE InHandle)
@@ -2071,13 +2071,13 @@ LONG LhSetInclusiveACL(
     */
     PLOCAL_HOOK_INFO        Handle;
 
-    if (!LhIsValidHandle(InHandle, &Handle))
+    if (!DetourIsValidHandle(InHandle, &Handle))
         return -3;
 
-    return LhSetACL(&Handle->LocalACL, FALSE, InThreadIdList, InThreadCount);
+    return DetourSetACL(&Handle->LocalACL, FALSE, InThreadIdList, InThreadCount);
 }
 
-LONG LhGetHookBypassAddress(
+LONG DetourGetHookBypassAddress(
     TRACED_HOOK_HANDLE InHook,
     PVOID** OutAddress)
 {
@@ -2117,7 +2117,7 @@ LONG LhGetHookBypassAddress(
     LONG                NtStatus;
     PLOCAL_HOOK_INFO    Handle;
 
-    if (!LhIsValidHandle(InHook, &Handle))
+    if (!DetourIsValidHandle(InHook, &Handle))
         THROW(-1, (PWCHAR)"The given hook handle is invalid or already disposed.");
 
     if (!IsValidPointer(OutAddress, sizeof(PVOID*)))
@@ -2132,7 +2132,7 @@ FINALLY_OUTRO:
     return NtStatus;
 }
 
-LONG DetourExport LhInstallHook(
+LONG DetourExport DetourInstallHook(
     void* InEntryPoint,
     void* InHookProc,
     void* InCallback,
@@ -2144,7 +2144,7 @@ LONG DetourExport LhInstallHook(
     Installs a hook at the given entry point, redirecting all
     calls to the given hooking method. The returned handle will
     either be released on library unloading or explicitly through
-    LhUninstallHook() or LhUninstallAllHooks().
+    DetourUninstallHook() or DetourUninstallAllHooks().
 
     Parameters:
 
@@ -2162,7 +2162,7 @@ LONG DetourExport LhInstallHook(
     - InCallback
 
     An uninterpreted callback later available through
-    LhBarrierGetCallback().
+    DetourBarrierGetCallback().
 
     - OutPHandle
 
@@ -2227,7 +2227,7 @@ THROW_OUTRO:
     return error;
 }
 
-LONG LhSetExclusiveACL(
+LONG DetourSetExclusiveACL(
     ULONG* InThreadIdList,
     ULONG InThreadCount,
     TRACED_HOOK_HANDLE InHandle)
@@ -2251,10 +2251,10 @@ LONG LhSetExclusiveACL(
     */
     PLOCAL_HOOK_INFO        Handle;
 
-    if (!LhIsValidHandle(InHandle, &Handle))
+    if (!DetourIsValidHandle(InHandle, &Handle))
         return -3;
 
-    return LhSetACL(&Handle->LocalACL, TRUE, InThreadIdList, InThreadCount);
+    return DetourSetACL(&Handle->LocalACL, TRUE, InThreadIdList, InThreadCount);
 }
 
 LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
@@ -3294,13 +3294,13 @@ void DllMain(void) __attribute__((constructor));
 
 void DllMain()
 {
-    LhBarrierProcessAttach();
-    LhCriticalInitialize();
+    DetourBarrierProcessAttach();
+    DetourCriticalInitialize();
 }
 __attribute__((destructor))
 void ExitFunc()
 {
-    LhBarrierProcessDetach();
-    LhCriticalFinalize();
+    DetourBarrierProcessDetach();
+    DetourCriticalFinalize();
 }
 //  End of File

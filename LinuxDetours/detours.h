@@ -448,47 +448,47 @@ extern "C" {
     make it active!
     */
 
-    LONG LhSetInclusiveACL(
+    LONG DetourSetInclusiveACL(
         ULONG* InThreadIdList,
         ULONG InThreadCount,
         TRACED_HOOK_HANDLE InHandle);
 
-    LONG LhSetExclusiveACL(
+    LONG DetourSetExclusiveACL(
         ULONG* InThreadIdList,
         ULONG InThreadCount,
         TRACED_HOOK_HANDLE InHandle);
 
-    LONG LhSetGlobalInclusiveACL(
+    LONG DetourSetGlobalInclusiveACL(
         ULONG* InThreadIdList,
         ULONG InThreadCount);
 
-    LONG LhSetGlobalExclusiveACL(
+    LONG DetourSetGlobalExclusiveACL(
         ULONG* InThreadIdList,
         ULONG InThreadCount);
 
-    LONG LhIsThreadIntercepted(
+    LONG DetourIsThreadIntercepted(
         TRACED_HOOK_HANDLE InHook,
         ULONG InThreadID,
         BOOL* OutResult);
 
-    LONG LhSetACL(
+    LONG DetourSetACL(
         HOOK_ACL* InAcl,
         BOOL InIsExclusive,
         ULONG* InThreadIdList,
         ULONG InThreadCount);
 
-    HOOK_ACL* LhBarrierGetAcl();
+    HOOK_ACL* DetourBarrierGetAcl();
     /*
     The following barrier methods are meant to be used in hook handlers only!
 
     They will all fail with STATUS_NOT_SUPPORTED if called outside a
     valid hook handler...
     */
-    LONG LhBarrierGetCallback(PVOID* OutValue);
+    LONG DetourBarrierGetCallback(PVOID* OutValue);
 
-    LONG LhBarrierGetReturnAddress(PVOID* OutValue);
+    LONG DetourBarrierGetReturnAddress(PVOID* OutValue);
 
-    LONG LhBarrierGetAddressOfReturnAddress(PVOID** OutValue);
+    LONG DetourBarrierGetAddressOfReturnAddress(PVOID** OutValue);
 
     LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer);
 
@@ -511,21 +511,21 @@ extern "C" {
     PVOID DetourSetSystemRegionLowerBound(_In_ PVOID pSystemRegionLowerBound);
     PVOID DetourSetSystemRegionUpperBound(_In_ PVOID pSystemRegionUpperBound);
 
-    void LhBarrierThreadDetach();
+    void DetourBarrierThreadDetach();
 
-    LONG LhBarrierProcessAttach();
-    void LhBarrierProcessDetach();
+    LONG DetourBarrierProcessAttach();
+    void DetourBarrierProcessDetach();
 
-    void LhCriticalInitialize();
-    void LhCriticalFinalize();
+    void DetourCriticalInitialize();
+    void DetourCriticalFinalize();
 
-    LONG LhInstallHook(
+    LONG DetourInstallHook(
         void* InEntryPoint,
         void* InHookProc,
         void* InCallback,
         TRACED_HOOK_HANDLE OutHandle);
 
-    LONG LhUninstallHook(TRACED_HOOK_HANDLE InHandle);
+    LONG DetourUninstallHook(TRACED_HOOK_HANDLE InHandle);
 
 
     ////////////////////////////////////////////////////////////// Code Functions.
@@ -711,11 +711,11 @@ BOOL DetourSetCodeModule##x(_In_ HMODULE hModule,                \
 //////////////////////////////////////////////////////////////////////////////
 
 
-//LONG LhBarrierBeginStackTrace(PVOID* OutBackup);
+//LONG DetourBarrierBeginStackTrace(PVOID* OutBackup);
 
-//LONG LhBarrierEndStackTrace(PVOID InBackup);
+//LONG DetourBarrierEndStackTrace(PVOID InBackup);
 
-BOOL LhIsValidHandle(
+BOOL DetourIsValidHandle(
     TRACED_HOOK_HANDLE InTracedHandle,
     PLOCAL_HOOK_INFO* OutHandle);
 
