@@ -36,17 +36,17 @@ __attribute__((naked))
         ".byte 0;"
         ".byte 0;"
 
+    "start:"
+
     "trampoline_template_thumb:"
 #if not defined(DETOURS_ARM32)
     ".thumb_func;"
         "bx pc;"
         "mov r8, r8;" // padding since pc is set to (current_instruction + 4) in Thumb Mode
 #endif
-
-
     "trampoline_template_arm:"
     ".code 32;"
-    "start:"
+
         "push    {r0, r1, r2, r3, r4, lr};"
         "push    {r5, r6, r7, r8, r9, r10};"
         "vpush   {d0-d7};"

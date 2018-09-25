@@ -227,7 +227,7 @@
     <ClCompile Include="detours.cpp" />
     <ClCompile Include="disasm.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="plthook_elf.c" />
+    <ClCompile Include="plthook_elf.cpp" />
     <ClCompile Include="trampoline_arm.cpp" />
     <ClCompile Include="trampoline_x86.cpp" />
   </ItemGroup>
@@ -293,7 +293,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_ARM_;_ARM32_</PreprocessorDefinitions>
-      <AdditionalOptions>-v  -mcpu=cortex-a5 -interwork</AdditionalOptions>
+      <AdditionalOptions>-mcpu=cortex-a5</AdditionalOptions>
     </ClCompile>
     <PreBuildEvent>
       <Command>
@@ -355,16 +355,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_ARM_</PreprocessorDefinitions>
-      <AdditionalOptions>-mthumb -mcpu=cortex-a5 -interwork%(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Arm-Thumb|ARM64'">
-    <Link>
-      <AdditionalOptions>-lpthread -ldl -lglog %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <ClCompile>
-      <PreprocessorDefinitions>_ARM_</PreprocessorDefinitions>
-      <AdditionalOptions>-mthumb -mcpu=cortex-a15 -interwork%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-mthumb -mcpu=cortex-a5%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
