@@ -358,15 +358,6 @@
       <AdditionalOptions>-mthumb -mcpu=cortex-a5%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Arm-Thumb|ARM64'">
-    <Link>
-      <AdditionalOptions>-lpthread -ldl -lglog %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <ClCompile>
-      <PreprocessorDefinitions>_ARM_</PreprocessorDefinitions>
-      <AdditionalOptions>-mthumb -mcpu=cortex-a15 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>
