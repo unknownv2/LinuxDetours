@@ -10,7 +10,7 @@ SOURCES = barrier.cpp detours.cpp disasm.cpp plthook_elf.cpp
 TRAMPOLINE_ARM = trampoline_arm.cpp
 TRAMPOLINE_X86 = trampoline_x86.cpp
 
-LIB_NAME = libcorehook
+LIB_NAME = libdetours
 
 .PHONY: linux_arm64 linux_arm64 linux_x64 macos_x64
 
