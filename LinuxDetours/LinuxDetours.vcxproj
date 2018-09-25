@@ -355,7 +355,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_ARM_</PreprocessorDefinitions>
-      <AdditionalOptions>-mthumb -mcpu=cortex-a5 -interwork%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-mthumb -mcpu=cortex-a5%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Arm-Thumb|ARM64'">
@@ -364,7 +364,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_ARM_</PreprocessorDefinitions>
-      <AdditionalOptions>-mthumb -mcpu=cortex-a15 -interwork%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-mthumb -mcpu=cortex-a15 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
