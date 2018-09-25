@@ -12,7 +12,7 @@ TRAMPOLINE_X86 = trampoline_x86.cpp
 
 LIB_NAME = libcorehook
 
-.PHONY: macos_x64 linux_arm64 linux_arm64 linux_x64
+.PHONY: linux_arm64 linux_arm64 linux_x64 macos_x64
 
 all:
 ifeq ($(UNAME),Darwin)
@@ -27,14 +27,14 @@ else
     endif
 endif
 
-macos_x64:
-	$(CXX) $(CXX_FLAGS) $(CXX_DEFINES) $(SOURCES) $(TRAMPOLINE_X86) -D_ADM64_ -D_UNIX64 -o $(LIB_NAME)64.dylib
 linux_x64:
 	$(CXX) $(CXX_FLAGS) $(CXX_DEFINES) $(SOURCES) $(TRAMPOLINE_X86) -D_ADM64_ -D_UNIX64 -o $(LIB_NAME)64.so	
 linux_arm:
 	$(CXX) $(CXX_FLAGS) $(CXX_DEFINES) $(SOURCES) $(TRAMPOLINE_ARM) -mcpu=cortex-a5 -D_ARM_ -D_ARM32_ -o $(LIB_NAME)32.so
 linux_arm64:
 	$(CXX) $(CXX_FLAGS) $(CXX_DEFINES) $(SOURCES) $(TRAMPOLINE_ARM) -D _ARM64_ -D _UNIX64 -o $(LIB_NAME)64.so
+macos_x64:
+	$(CXX) $(CXX_FLAGS) $(CXX_DEFINES) $(SOURCES) $(TRAMPOLINE_X86) -D_ADM64_ -D_UNIX64 -o $(LIB_NAME)64.dylib
 
 clean:
 ifeq ($(UNAME),Darwin)
