@@ -20,7 +20,7 @@ You can use Visual Studio to build the `LinuxDetours` application after configur
 
 ### libdetours - Shared Library (*.so, *.dylib)
 
-You can use the [`makefile`](LinuxDetours/makefile) to build the shared library. The makefile outputs `libdetours32` for ARM and `libdetours64` for X64 and ARM64 in the `LinuxDetours` source directory.
+You can use the [`makefile`](LinuxDetours/Makefile) to build the shared library. The makefile outputs `libdetours32` for ARM and `libdetours64` for X64 and ARM64 in the `LinuxDetours` source directory.
 
 ```
 git clone https://github.com/unknownv2/LinuxDetours.git
