@@ -2675,15 +2675,18 @@ LONG DetourUpdateThread(_In_ pthread_t hThread)
     */
     return NO_ERROR;
 }
-char buffer_print[1024];
+
+const unsigned int max_print_buffer_size = 1024;
+
+char buffer_print[max_print_buffer_size];
 const char* ___DETOUR_TRACE(const char *format, ...)
 {
-    memset(buffer_print, 0, 1024);
+    memset(buffer_print, 0, max_print_buffer_size);
     va_list arg;
     int done;
 
     va_start(arg, format);
-    vsprintf(buffer_print, format, arg);
+    vsnprintf(buffer_print, max_print_buffer_size, format, arg);
     va_end(arg);
 
     return buffer_print;
