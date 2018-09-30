@@ -3,10 +3,6 @@
 //  Detours Disassembler
 //
 
-#if _MSC_VER >= 1900
-#pragma warning(push)
-#pragma warning(disable:4091) // empty typedef
-#endif
 
 #define _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE 1
 #include "types.h"
@@ -17,10 +13,6 @@
 #define DETOURS_INTERNAL
 
 //#include "detours.h"
-
-#if _MSC_VER >= 1900
-#pragma warning(pop)
-#endif
 
 #undef ASSERT
 #define ASSERT(x)
@@ -149,9 +141,6 @@
 //      targets remain constant.  It does so by adjusting any IP relative
 //      offsets.
 //
-
-#pragma data_seg(".detourd")
-#pragma const_seg(".detourc")
 
 //////////////////////////////////////////////////// X86 and X64 Disassembler.
 //
@@ -2141,7 +2130,6 @@ UINT DETOUR_IA64_BUNDLE::Copy(_Out_ DETOUR_IA64_BUNDLE *pDst,
 {
     // Copy the bytes unchanged.
 
-#pragma warning(suppress:6001) // using uninitialized *pDst
     pDst->wide[0] = wide[0];
     pDst->wide[1] = wide[1];
 
