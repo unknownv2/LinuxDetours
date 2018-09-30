@@ -2370,7 +2370,6 @@ LONG DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
             PBYTE Ptr = (PBYTE)o->pTrampoline->Trampoline;
             for (ULONG Index = 0; Index < TrampolineSize; Index++)
             {
-#pragma warning (disable:4311) // pointer truncation
                 switch (*((ULONG*)(Ptr)))
                 {
                 /*Handle*/            case 0x1A2B3C05: *((ULONG*)Ptr) = (ULONG)o->pTrampoline; break;

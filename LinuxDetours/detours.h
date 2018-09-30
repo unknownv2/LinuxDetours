@@ -5,7 +5,6 @@
 //
 //
 
-#pragma once
 #ifndef _DETOURS_H_
 #define _DETOURS_H_
 
@@ -239,8 +238,6 @@ typedef UINT64 ULONG_PTR;
 #endif
 
 #ifdef DETOURS_INTERNAL
-
-#pragma warning(disable:4615) // unknown warning type (suppress with older compilers)
 
 #ifndef _Benign_race_begin_
 #define _Benign_race_begin_
@@ -620,10 +617,7 @@ LONG InterlockedCompareExchange(_Inout_ LONG *ptr, _In_ LONG nval, _In_ LONG ova
     return (LONG)__sync_val_compare_and_swap(ptr, oval, nval);
 }
 #else
-#pragma warning(push)
-#pragma warning(disable:4091) // empty typedef
 #include <dbghelp.h>
-#pragma warning(pop)
 #endif
 
 #if defined(_INC_STDIO) && !defined(_CRT_STDIO_ARBITRARY_WIDE_SPECIFIERS)
