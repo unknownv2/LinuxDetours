@@ -2684,7 +2684,7 @@ const char* ___DETOUR_TRACE(const char *format, ...)
     int done;
 
     va_start(arg, format);
-    sprintf(buffer_print, format, arg);
+    vsprintf(buffer_print, format, arg);
     va_end(arg);
 
     return buffer_print;
