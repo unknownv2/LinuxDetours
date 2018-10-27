@@ -12,7 +12,7 @@ TRAMPOLINE_X86 = trampoline_x86.cpp
 
 LIB_NAME = libdetours
 
-.PHONY: linux_arm64 linux_arm64 linux_x64 macos_x64
+.PHONY: linux_arm linux_arm64 linux_x64 macos_x64
 
 all:
 ifeq ($(UNAME),Darwin)
