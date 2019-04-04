@@ -2,8 +2,6 @@
 #include "detours.h"
 #include <glog/logging.h>
 
-static unsigned int(* TrueSleepEx)(unsigned int seconds) = sleep;
-
 unsigned int sleep_detour(unsigned int seconds)
 {
     LOG(INFO) << ("called sleep_detour.\n");
