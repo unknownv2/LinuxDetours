@@ -49,7 +49,7 @@ typedef long int                LONG;
 typedef short int               SHORT;
 typedef char                    CHAR;
 typedef int                     INT;
-typedef unsigned long int       DWORD;
+typedef unsigned int            DWORD;
 typedef unsigned short          WORD;
 typedef unsigned char           BYTE;
 typedef unsigned int            UINT;
@@ -60,7 +60,6 @@ typedef unsigned long long      UINT64;
 typedef int                     PT_FILEHANDLE;
 typedef void*                   DLL_HANDLE;
 
-typedef unsigned long           DWORD;
 typedef unsigned long*          LPDWORD;
 typedef void*                   LPOVERLAPPED;
 typedef void*                   OVERLAPPED;
