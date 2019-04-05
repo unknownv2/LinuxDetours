@@ -3288,15 +3288,15 @@ BOOL DetourVirtualProtectSameExecute(_In_  PVOID pAddress,
     return DetourVirtualProtectSameExecuteEx(getpid(),
                                            pAddress, nSize, dwNewProtect, pdwOldProtect);
 }
-void DllMain(void) __attribute__((constructor));
+void library_entry_point(void) __attribute__((constructor));
 
-void DllMain()
+void library_entry_point()
 {
     DetourBarrierProcessAttach();
     DetourCriticalInitialize();
 }
 __attribute__((destructor))
-void ExitFunc()
+void library_exit()
 {
     DetourBarrierProcessDetach();
     DetourCriticalFinalize();
