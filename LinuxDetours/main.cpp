@@ -4,31 +4,31 @@
 
 unsigned int sleep_detour(unsigned int seconds)
 {
-    LOG(INFO) << ("called sleep_detour.\n");
+    LOG(INFO) << "detours_test: called sleep_detour";
     DWORD ret = sleep(seconds);
 
     return ret;
 }
-unsigned int TestDetourB(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
+unsigned int test_detour_b(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
-    LOG(INFO) << ("called TestDetourB.\n");
+    LOG(INFO) << "detours_test: called test_detour_b";
     return seconds + 1;
 }
-unsigned int TestDetourA(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e, unsigned int f, unsigned int g, unsigned int h)
+unsigned int test_detour_a(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e, unsigned int f, unsigned int g, unsigned int h)
 {
-    LOG(INFO) << "Detoured B -> A: " << a << ", " << b << ", " << c << ", " << d << ", " << e;
-    return TestDetourB(seconds + 2, a, b, c, d, e);
+    LOG(INFO) << "detours_test: detoured function 'b' -> function 'a' with params: " << a << ", " << b << ", " << c << ", " << d << ", " << e;
+    return test_detour_b(seconds + 2, a, b, c, d, e);
 }
 
-VOID* TestSleep(void*)
+VOID* test_runner(void*)
 {
-    LOG(INFO) << "detours: TestDetourB returned " << TestDetourB(1, 2, 3, 4, 5, 6);
-    LOG(INFO) << "detours: Calling sleep for 1 second.";
+    LOG(INFO) << "detours_test: test_detour_b returned " << test_detour_b(1, 2, 3, 4, 5, 6);
+    LOG(INFO) << "detours_test: Calling sleep for 1 second";
     sleep(1);
-    LOG(INFO) << "detours: Calling sleep again for 2 seconds.";
+    LOG(INFO) << "detours_test: Calling sleep again for 2 seconds";
     sleep(2);
     
-    LOG(INFO)  << ("detours: Done sleeping.\n\n");
+    LOG(INFO)  << "detours_test: Done sleeping\n";
     
     return NULL;
 }
@@ -38,7 +38,7 @@ int test_glog(char * argv)
     google::InitGoogleLogging(argv);
     FLAGS_logtostderr = true;
 
-    LOG(INFO) << "Starting detours tests";
+    LOG(INFO) << "detours_test: Starting detours tests";
     return 1;
 }
 
@@ -47,7 +47,6 @@ int main(int argc, char * argv[])
     test_glog(argv[0]);
 
     DetourBarrierProcessAttach();
-
     DetourCriticalInitialize();
 
     LONG test_detour_callback = 0;
@@ -55,14 +54,14 @@ int main(int argc, char * argv[])
     TRACED_HOOK_HANDLE test_detour_handle = new HOOK_TRACE_INFO();
     TRACED_HOOK_HANDLE sleep_detour_handle = new HOOK_TRACE_INFO();    
 
-    DetourInstallHook((void*)TestDetourB, (void*)TestDetourA, &test_detour_callback, test_detour_handle);
+    DetourInstallHook((void*)test_detour_b, (void*)test_detour_a, &test_detour_callback, test_detour_handle);
     DetourInstallHook((void*)sleep, (void*)sleep_detour, &sleep_detour_callback, sleep_detour_handle);
 
     ULONG ret = DetourSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)test_detour_handle);
     ret = DetourSetExclusiveACL(new ULONG(), 1, (TRACED_HOOK_HANDLE)sleep_detour_handle);
 
     pthread_t t;
-    pthread_create(&t, NULL, TestSleep, NULL);
+    pthread_create(&t, NULL, test_runner, NULL);
     pthread_join(t, NULL);
 
     DetourUninstallHook(test_detour_handle);
