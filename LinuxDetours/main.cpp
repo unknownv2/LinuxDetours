@@ -41,12 +41,6 @@ int test_glog(char * argv)
     LOG(INFO) << "Starting detours tests";
     return 1;
 }
-void* DetourSetSystemRegionLowerBound_detour(void * bound)
-{
-    LOG(INFO) << "Called DetourSetSystemRegionLowerBound_detour";
-
-    return NULL;
-}
 
 int main(int argc, char * argv[])
 {
