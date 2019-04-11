@@ -14,7 +14,8 @@ unsigned int test_detour_b(unsigned int seconds, unsigned int a, unsigned int b,
 }
 unsigned int test_detour_a(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
-    LOG(INFO) << "detours_test: Detoured function 'test_detour_b' -> function 'test_detour_a' with params: " << a << ", " << b << ", " << c << ", " << d << ", " << e;
+    LOG(INFO) << "detours_test: Detoured function 'test_detour_b' -> function 'test_detour_a' with params: "
+              << a << ", " << b << ", " << c << ", " << d << ", " << e;
     return test_detour_b(seconds + 2, a, b, c, d, e);
 }
 
