@@ -12,9 +12,9 @@ unsigned int test_detour_b(unsigned int seconds, unsigned int a, unsigned int b,
     LOG(INFO) << "detours_test: Called test_detour_b";
     return seconds + 1;
 }
-unsigned int test_detour_a(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e, unsigned int f, unsigned int g, unsigned int h)
+unsigned int test_detour_a(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
-    LOG(INFO) << "detours_test: detoured function 'b' -> function 'a' with params: " << a << ", " << b << ", " << c << ", " << d << ", " << e;
+    LOG(INFO) << "detours_test: Detoured function 'test_detour_b' -> function 'test_detour_a' with params: " << a << ", " << b << ", " << c << ", " << d << ", " << e;
     return test_detour_b(seconds + 2, a, b, c, d, e);
 }
 
@@ -28,7 +28,7 @@ VOID* test_runner(void*)
     sleep(2);
     
     LOG(INFO)  << "detours_test: Done sleeping\n";
-        
+
     return NULL;
 }
 
