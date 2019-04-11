@@ -4,14 +4,12 @@
 
 unsigned int sleep_detour(unsigned int seconds)
 {
-    LOG(INFO) << "detours_test: called sleep_detour";
-    DWORD ret = sleep(seconds);
-
-    return ret;
+    LOG(INFO) << "detours_test: Called sleep_detour";
+    return sleep(seconds);
 }
 unsigned int test_detour_b(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e)
 {
-    LOG(INFO) << "detours_test: called test_detour_b";
+    LOG(INFO) << "detours_test: Called test_detour_b";
     return seconds + 1;
 }
 unsigned int test_detour_a(unsigned int seconds, unsigned int a, unsigned int b, unsigned int c, unsigned int d, unsigned int e, unsigned int f, unsigned int g, unsigned int h)
@@ -22,14 +20,15 @@ unsigned int test_detour_a(unsigned int seconds, unsigned int a, unsigned int b,
 
 VOID* test_runner(void*)
 {
-    LOG(INFO) << "detours_test: test_detour_b returned " << test_detour_b(1, 2, 3, 4, 5, 6);
+    LOG(INFO) << "detours_test: Function 'test_detour_b' returned " << test_detour_b(1, 2, 3, 4, 5, 6);
+
     LOG(INFO) << "detours_test: Calling sleep for 1 second";
     sleep(1);
     LOG(INFO) << "detours_test: Calling sleep again for 2 seconds";
     sleep(2);
     
     LOG(INFO)  << "detours_test: Done sleeping\n";
-    
+        
     return NULL;
 }
 
@@ -74,6 +73,6 @@ int main(int argc, char * argv[])
 
     DetourCriticalFinalize();
     DetourBarrierProcessDetach();
-    
+
     return 0;
 }
