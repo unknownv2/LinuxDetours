@@ -3298,7 +3298,7 @@ void library_entry_point()
 __attribute__((destructor))
 void library_exit()
 {
+    DetourCriticalFinalize();    
     DetourBarrierProcessDetach();
-    DetourCriticalFinalize();
 }
 //  End of File

@@ -72,8 +72,8 @@ int main(int argc, char * argv[])
 
     sleep(1);
 
-    DetourBarrierProcessDetach();
     DetourCriticalFinalize();
-
+    DetourBarrierProcessDetach();
+    
     return 0;
 }
