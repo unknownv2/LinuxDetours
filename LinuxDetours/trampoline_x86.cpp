@@ -1,7 +1,6 @@
 #include "detours.h"
 
-#if defined(DETOURS_X64) 
-__asm__ __volatile__
+#if defined(DETOURS_X64)
 (R"(.intel_syntax
 .globl Trampoline_ASM_x64
 .globl trampoline_template_x64
